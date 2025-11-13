@@ -1,7 +1,7 @@
 import Product from "../model/Product.js";
 import cloudinary from "../config/cloudinary.js";
 import dataUri from "../utils/dataUri.js";
-import { adminAuth } from "../middleware/adminMiddleware.js";
+
 
 // Create new product
 // Upload product with image
