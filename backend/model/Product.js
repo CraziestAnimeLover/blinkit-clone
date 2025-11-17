@@ -21,7 +21,7 @@ const productSchema = new mongoose.Schema(
     },
     image: {
       type: String, // Cloudinary URL or local path
-      required: true,
+      required: false,
     },
     stock: {
       type: Number,

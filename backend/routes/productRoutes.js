@@ -10,7 +10,6 @@ import {
 
 const router = express.Router();
 
-router.post("/", upload.single("image"), createProduct);
 router.get("/", getProducts);
 router.get("/:id", getProductById);
 
