@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, address } = req.body;
+    const { name, email, password, address, role } = req.body;
 
     // check if user exists
     let user = await User.findOne({ email });
@@ -15,14 +15,17 @@ export const signup = async (req, res) => {
     const hashed = await bcrypt.hash(password, salt);
 
     // create new user
-    user = new User({ name, email, password: hashed, address });
+    user = new User({ name, email, password: hashed, address, role, isAdmin: role === "admin" });
     await user.save();
 
     // create token
-    const payload = { user: { id: user.id, role: user.role } };
+    const payload = { id: user.id, role: user.role, isAdmin: user.isAdmin };
+
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    res.json({ token });
+    // return user data without password
+    const userData = await User.findById(user._id).select("-password");
+    res.json({ token, user: userData });
   } catch (err) {
     console.error("Signup error:", err);
     res.status(500).json({ msg: "Server error" });
@@ -43,10 +46,13 @@ export const login = async (req, res) => {
     if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
     // create token
-    const payload = { user: { id: user.id, role: user.role } };
+    const payload = { id: user.id, role: user.role, isAdmin: user.isAdmin };
+
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    res.json({ token });
+    // return user data without password
+    const userData = await User.findById(user._id).select("-password");
+    res.json({ token, user: userData });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ msg: "Server error" });

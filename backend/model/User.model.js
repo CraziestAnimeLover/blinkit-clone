@@ -4,28 +4,37 @@ const UserSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      trim: true, // removes spaces from start & end
+      trim: true,
+      required: true, // optional but recommended
     },
     email: {
       type: String,
       required: true,
       unique: true,
-      lowercase: true, // good for consistent email storage
+      lowercase: true,
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return !this.googleId; // only required if no googleId
+      },
+    },
+    googleId: { // add this field for Google OAuth
+      type: String,
+      unique: true,
+      sparse: true, // allows null values
     },
     role: {
       type: String,
       default: "user",
-      enum: ["user", "admin"], // helps keep valid roles
+      enum: ["user", "admin"],
     },
     address: {
       type: String,
       trim: true,
     },
-    isAdmin: { type: Boolean, default: true },
+    isAdmin: { type: Boolean, default: false },
+    avatar: { type: String }, // optional profile picture from Google
   },
   { timestamps: true }
 );

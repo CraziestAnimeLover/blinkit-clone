@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import Sidebar from "./Sidebar";
+import DashView from "./DashView";
 
 const AdminDashboard = () => {
   const [products, setProducts] = useState([]);
@@ -9,8 +11,8 @@ const AdminDashboard = () => {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    axios.get("http://localhost:8000/api/products").then(res => setProducts(res.data.products));
-    axios.get("http://localhost:8000/api/auth/users", {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/products`).then(res => setProducts(res.data.products));
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/users`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(res => setUsers(res.data.users));
   }, []);
@@ -26,12 +28,12 @@ const AdminDashboard = () => {
       const formData = new FormData();
       Object.entries(form).forEach(([k, v]) => formData.append(k, v));
 
-      await axios.post("http://localhost:8000/api/products", formData, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/products`, formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert("✅ Product added");
       // Refresh products
-      axios.get("http://localhost:8000/api/products").then(res => setProducts(res.data.products));
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/products`).then(res => setProducts(res.data.products));
       // Reset form
       setForm({ name: "", price: "", category: "", stock: "", image: null });
     } catch (error) {
@@ -40,19 +42,19 @@ const AdminDashboard = () => {
   };
 
   const handleDelete = async (id) => {
-    await axios.delete(`http://localhost:8000/api/products/${id}`, {
+    await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     alert("🗑 Product deleted");
   };
 
   const handleToggleAdmin = async (id, currentIsAdmin) => {
-    await axios.put(`http://localhost:8000/api/auth/users/${id}`, { isAdmin: !currentIsAdmin }, {
+    await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/auth/users/${id}`, { isAdmin: !currentIsAdmin }, {
       headers: { Authorization: `Bearer ${token}` },
     });
     alert("User updated");
     // Refresh users
-    axios.get("http://localhost:8000/api/auth/users", {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/users`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(res => setUsers(res.data.users));
   };
@@ -60,6 +62,11 @@ const AdminDashboard = () => {
   return (
     <div className="p-6">
       <h1 className="text-xl font-bold mb-4">Admin Dashboard</h1>
+
+      <div>
+        <Sidebar/>
+        <DashView/>
+      </div>
 
       {/* Product Management */}
       <h2 className="text-lg font-semibold mb-2">Product Management</h2>

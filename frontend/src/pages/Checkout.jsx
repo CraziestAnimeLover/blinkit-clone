@@ -1,4 +1,3 @@
-// src/pages/Checkout.jsx
 import React, { useContext, useState } from "react";
 import { CartContext } from "../context/CartContext";
 import axios from "axios";
@@ -7,31 +6,39 @@ const Checkout = () => {
   const { cartItems, clearCart } = useContext(CartContext);
   const [address, setAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [loading, setLoading] = useState(false); // ✅ FIXED
   const token = localStorage.getItem("token");
 
-  const total = cartItems.reduce((sum, item) => sum + item.price, 0);
+  const total = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleCheckout = async () => {
+    if (!token) return alert("Please login first");
+
     try {
-     const { data } = await axios.post(
-  "http://localhost:8000/api/orders",
-  {
-    items: cartItems,
-    totalAmount: total,
-    address,
-    paymentMethod,
-  },
-  {
-    headers: {
-      Authorization: `Bearer ${token}`, // 👈 this is important
-    },
-  }
-);
+      setLoading(true); // start loader
+
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/orders`,
+        {
+          items: cartItems,
+          totalAmount: total,
+          address,
+          paymentMethod,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // required
+          },
+        }
+      );
+
       alert(data.message);
       clearCart();
     } catch (err) {
       console.error(err);
       alert("Error placing order");
+    } finally {
+      setLoading(false); // stop loader
     }
   };
 
@@ -61,11 +68,13 @@ const Checkout = () => {
       </div>
 
       <p className="text-lg font-medium mb-4">Total: ₹{total}</p>
+
       <button
         onClick={handleCheckout}
-        className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+        disabled={loading}
+        className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50"
       >
-        Place Order
+        {loading ? "Processing..." : "Place Order"}
       </button>
     </div>
   );

@@ -1,6 +1,6 @@
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
-import { createOrder, getOrders , addPaymentMethod } from "../controllers/orderController.js";
+import { createOrder,  getUserOrders  , addPaymentMethod ,placeOrder} from "../controllers/orderController.js";
 
 const router = express.Router();
 
@@ -8,7 +8,10 @@ const router = express.Router();
 router.post("/", authMiddleware, createOrder);
 
 // ✅ Get user orders
-router.get("/", authMiddleware, getOrders);
+router.get("/", authMiddleware,  getUserOrders );
+router.post("/", authMiddleware, placeOrder)
+// Get orders of logged-in user
+router.get("/my-orders", authMiddleware, getUserOrders);
 
 router.post("/:id/payment", authMiddleware, addPaymentMethod); // Add payment
 

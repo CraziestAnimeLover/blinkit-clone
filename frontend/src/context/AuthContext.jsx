@@ -8,12 +8,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // 🟢 Signup
-  const signup = async (name, email, password, address) => {
-    const res = await axios.post("http://localhost:8000/api/auth/signup", {
+  const signup = async (name, email, password, address, role = "user") => {
+    const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/signup`, {
       name,
       email,
       password,
       address,
+      role,
     });
     localStorage.setItem("token", res.data.token);
     setUser(res.data.user);
@@ -21,7 +22,7 @@ export const AuthProvider = ({ children }) => {
 
   // 🟢 Login
   const login = async (email, password) => {
-    const res = await axios.post("http://localhost:8000/api/auth/login", {
+    const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
       email,
       password,
     });
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const res = await axios.get("http://localhost:8000/api/auth/me", {
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data.user);
@@ -59,8 +60,15 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+
+  const loginWithGoogle = () => {
+  window.location.href = "http://localhost:8000/api/auth/google";
+};
+
+
+
   return (
-    <AuthContext.Provider value={{ user, signup, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, signup, login, logout, loginWithGoogle , loading }}>
       {children}
     </AuthContext.Provider>
   );

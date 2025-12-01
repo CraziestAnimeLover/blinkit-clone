@@ -11,12 +11,12 @@ const ProductDetails = () => {
   useEffect(() => {
     // Fetch product by ID
     const fetchProduct = async () => {
-      const res = await fetch(`http://localhost:8000/api/products/${id}`);
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`);
       const data = await res.json();
       setProduct(data);
 
       // Fetch some random related products (for carousel)
-      const relatedRes = await fetch("http://localhost:8000/api/products");
+      const relatedRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products`);
       const relatedData = await relatedRes.json();
       setSuggestions(relatedData.slice(0, 10)); // show top 10 suggestions
     };

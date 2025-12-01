@@ -1,5 +1,5 @@
 import Order from "../model/Order.js";
-import Product from "../model/Product.js";
+
 import jwt from "jsonwebtoken";
 
 
@@ -12,7 +12,7 @@ export const createOrder = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // decode.user.id since your token structure is { user: { id, role } }
-    const userId = decoded.user.id;
+    const userId = decoded.id;
 
     const { items, address, paymentMethod } = req.body;
 
@@ -48,17 +48,16 @@ export const createOrder = async (req, res) => {
 
 
 
-export const getOrders = async (req, res) => {
+export const getUserOrders = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const orders = await Order.find({ user: decoded.id }).populate("items.product");
-    res.json(orders);
+    const userId = req.user.id; // Assuming authMiddleware adds req.user
+    const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
+    res.json({ success: true, orders });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
 
 
 // Route: POST /api/orders/:id/payment
@@ -88,3 +87,21 @@ export const addPaymentMethod = async (req, res) => {
 };
 
 
+export const placeOrder = async (req, res) => {
+  try {
+    const userId = req.userId;  // this comes from auth middleware
+
+    const order = await Order.create({
+      userId,
+      items: req.body.items,
+      amount: req.body.amount,
+      address: req.body.address,
+      paymentMethod: req.body.paymentMethod
+    });
+
+    res.json({ success: true, order });
+  } catch (err) {
+    console.log("Place order error:", err);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};

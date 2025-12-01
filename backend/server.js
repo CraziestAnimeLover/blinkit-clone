@@ -1,16 +1,17 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import connectDB from "./config/db.js";
+
+import passport from "passport";            // <-- ADD
+import "./config/passport.js";              // <-- ADD (loads Google Strategy)
+
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
-
-
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -22,21 +23,19 @@ connectDB();
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: process.env.FRONTEND_URL,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
 
+app.use(passport.initialize());   // <-- ADD THIS
+
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
-
-
 app.use("/api/payment", paymentRoutes);
-
-
 
 app.get("/", (req, res) => {
   res.send("🚀 Server is running successfully!");

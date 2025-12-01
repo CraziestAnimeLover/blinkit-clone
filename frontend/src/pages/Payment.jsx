@@ -6,75 +6,102 @@ import axios from "axios";
 const Payment = () => {
   const { orderId } = useParams();
   const { total, clearCart } = useCart();
-  const [method, setMethod] = useState("razorpay"); // default payment method
+  const [method, setMethod] = useState("razorpay");
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
   const DELIVERY_CHARGE = 25;
   const HANDLING_CHARGE = 2;
   const SMALL_CART_CHARGE = 20;
-  const grandTotal = total + DELIVERY_CHARGE + HANDLING_CHARGE + SMALL_CART_CHARGE;
 
+  const grandTotal =
+    total + DELIVERY_CHARGE + HANDLING_CHARGE + SMALL_CART_CHARGE;
+
+  // -------------------------------------------------------
+  // HANDLE PAYMENT
+  // -------------------------------------------------------
   const handlePayment = async () => {
     if (!token) return alert("Please login first");
 
+    // ---------------------------
+    // ONLINE PAYMENT (RAZORPAY)
+    // ---------------------------
     if (method === "razorpay") {
       try {
-        // 1. Create Razorpay order on backend
-        const { data } = await axios.post(
-          "http://localhost:8000/api/payment/create-order",
-          { amount: grandTotal, orderId },
-          { headers: { Authorization: `Bearer ${token}` } }
+        // 1) Create Razorpay order on backend
+        const { data: razorpayOrder } = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/payment/create-order`,
+          {
+            amount: grandTotal,
+            orderId,
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
 
-        // 2. Open Razorpay checkout
+        // 2) Razorpay checkout options
         const options = {
-          key: process.env.REACT_APP_RAZORPAY_KEY_ID,
-          amount: data.amount,
-          currency: data.currency,
-          order_id: data.id,
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: razorpayOrder.amount,
+          currency: "INR",
           name: "Blinkit Clone",
           description: "Order Payment",
+          order_id: razorpayOrder.id, // ✔ FIXED
           handler: async function (response) {
-            // Verify payment
-            await axios.post(
-              "http://localhost:8000/api/payment/verify",
-              {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                orderId,
-              },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
+            try {
+              // 3) Verify payment on backend
+              await axios.post(
+                `${import.meta.env.VITE_BACKEND_URL}/api/payment/verify`,
+                {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  orderId,
+                },
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
 
-            clearCart();
-            navigate("/order-confirmation");
+              clearCart();
+              navigate("/order-confirmation");
+            } catch (verifyErr) {
+              console.error("Verify Error:", verifyErr);
+              alert("Payment verification failed");
+            }
           },
-          prefill: { name: "Customer Name", email: "customer@example.com" },
+          prefill: {
+            name: "Customer",
+            email: "customer@example.com",
+          },
           theme: { color: "#53a20e" },
         };
 
         const rzp = new window.Razorpay(options);
         rzp.open();
       } catch (err) {
-        console.error(err);
-        alert("Payment failed");
+        console.error("Payment Error:", err);
+        alert("Payment failed. Try again.");
       }
-    } else if (method === "cod") {
-      // COD: call backend to update order as COD
+    }
+
+    // ---------------------------
+    // CASH ON DELIVERY (COD)
+    // ---------------------------
+    if (method === "cod") {
       try {
         await axios.post(
-          `http://localhost:8000/api/orders/${orderId}/payment`,
-          { method: "cod", amount: 0 },
+          `${import.meta.env.VITE_BACKEND_URL}/api/orders/${orderId}/payment`,
+          { method: "cod" },
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
         clearCart();
         navigate("/order-confirmation");
       } catch (err) {
-        console.error(err);
-        alert("Failed to select COD");
+        console.error("COD Error:", err);
+        alert("Failed to place COD order");
       }
     }
   };
