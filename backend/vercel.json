@@ -1,20 +1,7 @@
 {
   "version": 2,
-<<<<<<< HEAD
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1.js" },
     { "source": "/(.*)", "destination": "/frontend/$1" }
-=======
-  
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/$1"
-    }
->>>>>>> 44ce6ae743e46890342689fa29cca5d29936d0a5
   ]
 }
