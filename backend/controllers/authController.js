@@ -21,7 +21,16 @@ export const signup = async (req, res) => {
     // create token
     const payload = { id: user.id, role: user.role, isAdmin: user.isAdmin };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign(
+  {
+    id: user._id,
+    email: user.email,
+    role: user.role
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "7d" }
+);
+
 
     // return user data without password
     const userData = await User.findById(user._id).select("-password");
@@ -48,7 +57,16 @@ export const login = async (req, res) => {
     // create token
     const payload = { id: user.id, role: user.role, isAdmin: user.isAdmin };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign(
+  {
+    id: user._id,
+    email: user.email,
+    role: user.role
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "7d" }
+);
+
 
     // return user data without password
     const userData = await User.findById(user._id).select("-password");

@@ -7,6 +7,8 @@ import { useContext, useState } from "react";
 const Navbar = () => {
   const { cart } = useCart();
   const { user, logout } = useContext(AuthContext);
+const isAdmin = user?.role === "admin";
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -14,9 +16,10 @@ const Navbar = () => {
     <nav className="flex justify-between items-center bg-white shadow-md px-6 py-3 sticky top-0 z-50">
       {/* Logo + Delivery Info */}
       <div className="flex items-center gap-3">
-        <Link to="/" className="text-2xl font-bold text-green-600">
-          Blinkit
-        </Link>
+       <Link to={isAdmin ? "/admin" : "/"} className="text-2xl font-bold text-green-600">
+  Blinkit
+</Link>
+
         <div className="flex items-center bg-green-100 text-green-700 text-sm font-semibold px-2 py-1 rounded-md animate-pulse">
           <Clock className="w-4 h-4 mr-1 text-green-600" />
           Delivery in <span className="ml-1 font-bold">8 mins</span>
@@ -34,15 +37,18 @@ const Navbar = () => {
 
       {/* Right Section */}
       <div className="flex gap-4 items-center relative">
-        {/* Cart Icon */}
-        <Link to="/cart" className="relative">
-          <ShoppingCart className="w-6 h-6 text-gray-700" />
-          {totalItems > 0 && (
-            <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full px-1.5">
-              {totalItems}
-            </span>
-          )}
-        </Link>
+      {/* Cart Icon */}
+{!isAdmin && (
+  <Link to="/cart" className="relative">
+    <ShoppingCart className="w-6 h-6 text-gray-700" />
+    {totalItems > 0 && (
+      <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full px-1.5">
+        {totalItems}
+      </span>
+    )}
+  </Link>
+)}
+
 
         {/* Login / Profile */}
         {!user ? (

@@ -21,6 +21,8 @@ import Dashboard from "./pages/admin/pages/Dashboard";
 import Products from "./pages/admin/pages/AdminProducts";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import MyOrders from "./pages/MyOrders";
+import AdminProducts from "./pages/admin/pages/AdminProducts";
+import ProfilePage from "./pages/ProfilePage";
 
 
 // ✅ This component can safely use useLocation()
@@ -35,6 +37,8 @@ function Layout() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/profile" element={<ProfilePage />} />
+
       
           <Route
             path="/admin"
@@ -58,7 +62,7 @@ function Layout() {
           
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/customers" element={<Customers />} />
-                    <Route path="/products" element={<Products
+                    <Route path="/products" element={<AdminProducts
                      />} />
                      <Route path="/payment-success" element={<PaymentSuccess />} />
 

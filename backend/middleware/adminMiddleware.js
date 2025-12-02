@@ -12,9 +12,10 @@ const adminAuth = async (req, res, next) => {
     // read from your new payload
     const user = await User.findById(decoded.id);
 
-    if (!user || !user.isAdmin) {
-      return res.status(403).json({ message: "Access denied, admin only" });
-    }
+   if (!user || user.role !== "admin") {
+  return res.status(403).json({ message: "Access denied, admin only" });
+}
+
 
     req.user = user;
     next();

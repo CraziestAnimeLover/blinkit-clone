@@ -7,6 +7,9 @@ import dataUri from "../utils/dataUri.js";
 // Upload product with image
 export const createProduct = async (req, res) => {
   try {
+    // console.log("REQ BODY:", req.body);
+    // console.log("REQ FILE:", req.file);
+
     let imageUrl = "";
 
     if (req.file) {
@@ -30,9 +33,11 @@ export const createProduct = async (req, res) => {
 
     res.status(201).json({ success: true, product });
   } catch (error) {
+    console.log("PRODUCT CREATE ERROR:", error);  // ADD THIS
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // Get all products
 export const getProducts = async (req, res) => {
