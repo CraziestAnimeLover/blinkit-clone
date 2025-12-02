@@ -23,11 +23,15 @@ connectDB();
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: [
+      process.env.FRONTEND_URL, // localhost during development
+      "https://blinkit-clone-frontend-one.vercel.app" // deployed frontend
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
+
 
 app.use(passport.initialize());   // <-- ADD THIS
 
