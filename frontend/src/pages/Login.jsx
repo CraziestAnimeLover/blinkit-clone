@@ -1,13 +1,14 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Login = () => {
   const { login, loginWithGoogle, user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  // const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+ 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,9 +20,9 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    window.location.href = `${backendUrl}/api/auth/google`;
-  };
+  // const handleGoogleLogin = () => {
+  //   window.location.href = `${backendUrl}/api/auth/google`;
+  // };
 
   // Redirect after user state updates
   useEffect(() => {
@@ -56,13 +57,13 @@ const Login = () => {
       </form>
 
       {/* Google Login Button */}
-      <button
-        className="w-full mt-4 py-2 border rounded flex items-center justify-center gap-2 hover:bg-gray-100"
-        onClick={handleGoogleLogin}
-      >
-        <img src="/google.png" alt="Google" className="w-7 h-7" />
-        Sign in with Google
-      </button>
+    <button
+  className="w-full mt-4 py-2 border rounded flex items-center justify-center gap-2 hover:bg-gray-100"
+  onClick={loginWithGoogle} // use context function
+>
+  <img src="/google.png" alt="Google" className="w-7 h-7" />
+  Sign in with Google
+</button>
 
       <p className="text-center mt-4 text-sm">
         Don't have an account?{' '}

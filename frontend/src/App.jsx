@@ -23,6 +23,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import MyOrders from "./pages/MyOrders";
 import AdminProducts from "./pages/admin/pages/AdminProducts";
 import ProfilePage from "./pages/ProfilePage";
+import LoginSuccess from "./pages/LoginSuccess";
 
 
 // ✅ This component can safely use useLocation()
@@ -36,6 +37,7 @@ function Layout() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+  <Route path="/login/success" element={<LoginSuccess />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/profile" element={<ProfilePage />} />
 

@@ -76,3 +76,15 @@ export const login = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+// Example in your authController.js
+// authController.js
+export const googleCallback = (req, res) => {
+  // req.user should have the user info after passport verifies Google OAuth
+  const token = generateToken(req.user); // JWT token function
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+  // Redirect to frontend login success page with token
+  res.redirect(`${frontendUrl}/login/success?token=${token}`);
+};
+
