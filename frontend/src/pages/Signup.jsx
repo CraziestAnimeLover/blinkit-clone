@@ -5,7 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 const Signup = () => {
   const { signup, user } = useContext(AuthContext);
   const navigate = useNavigate();
-
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -39,7 +39,7 @@ const Signup = () => {
   };
 
   const handleGoogleSignup = () => {
-    window.location.href = "http://localhost:8000/api/auth/google";
+    window.location.href = `${backendUrl}/api/auth/google`;
   };
 
   return (
