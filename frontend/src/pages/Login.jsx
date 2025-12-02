@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 const Login = () => {
   const { login, loginWithGoogle, user } = useContext(AuthContext);
   const navigate = useNavigate();
-  
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
 
@@ -20,7 +20,7 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:8000/api/auth/google";
+    window.location.href = `${backendUrl}/api/auth/google`;
   };
 
   // Redirect after user state updates
