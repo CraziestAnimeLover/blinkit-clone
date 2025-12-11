@@ -24,6 +24,7 @@ import MyOrders from "./pages/MyOrders";
 import AdminProducts from "./pages/admin/pages/AdminProducts";
 import ProfilePage from "./pages/ProfilePage";
 import LoginSuccess from "./pages/LoginSuccess";
+import CategoryPage from "./pages/CategoryPage";
 
 
 // ✅ This component can safely use useLocation()
@@ -61,6 +62,7 @@ function Layout() {
           <Route path="/product/:id" element={<ProductDetails />} />
 
           <Route path="/all-categories" element={<AllCategoriesPage />} />
+          <Route path="/category/:categoryTitle" element={<CategoryPage />} />
           
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/customers" element={<Customers />} />

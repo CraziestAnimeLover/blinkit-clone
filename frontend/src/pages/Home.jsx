@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useCart } from "../context/CartContext";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
 import axios from "axios";
-
+import AllCategoriesPage from "./AllCategoriesPage";
 // Use your categories array
 const allCategories = [
   {
@@ -321,7 +321,9 @@ const Home = () => {
   const [selectedMainCategory, setSelectedMainCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
 
-  // Fetch products from backend
+  const carouselRef = useRef(null);
+
+  // Fetch products
   const loadProducts = async () => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/products`);
@@ -337,9 +339,21 @@ const Home = () => {
 
   // Filter products
   const filteredProducts = products.filter((p) => {
-    if (!selectedSubCategory) return true; // show all if no subcategory selected
-    return p.subcategory === selectedSubCategory; // assume product has `subcategory` field
+    if (!selectedSubCategory) return true;
+    return p.subcategory === selectedSubCategory;
   });
+
+  // Carousel scroll
+  const scroll = (direction) => {
+    if (carouselRef.current) {
+      const { scrollLeft, clientWidth } = carouselRef.current;
+      const scrollAmount = direction === "left" ? -clientWidth : clientWidth;
+      carouselRef.current.scrollTo({
+        left: scrollLeft + scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
 
   return (
     <div className="px-6 py-4">
@@ -348,26 +362,47 @@ const Home = () => {
         Welcome to Blinkit Clone 🛒
       </div>
 
-      {/* Main Categories */}
-      <h2 className="text-xl font-bold mt-6 mb-3">Categories</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        {allCategories.map((cat) => (
-          <div
-            key={cat.title}
-            className={`p-2 cursor-pointer rounded ${
-              selectedMainCategory === cat.title ? "bg-green-200" : ""
-            }`}
-            onClick={() =>
-              setSelectedMainCategory(
-                selectedMainCategory === cat.title ? "" : cat.title
-              )
-            }
-          >
-            <p className="text-center font-medium">{cat.title}</p>
-          </div>
-        ))}
-      </div>
+      {/* Main Categories Carousel */}
+      {/* <h2 className="text-xl font-bold mt-6 mb-3">Categories</h2> */}
+      {/* <div className="relative">
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-green-100 z-10"
+        >
+          &#8592;
+        </button>
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-green-100 z-10"
+        >
+          &#8594;
+        </button>
 
+        <div
+          ref={carouselRef}
+          className="flex space-x-4 overflow-x-auto scrollbar-hide scroll-smooth py-2"
+        >
+          {allCategories.map((cat) => (
+            <div
+              key={cat.title}
+              className={`min-w-[180px] p-3 rounded-lg cursor-pointer text-center font-medium transition 
+                ${selectedMainCategory === cat.title ? "bg-green-200" : "bg-gray-100 hover:bg-green-100"}`}
+              onClick={() =>
+                setSelectedMainCategory(
+                  selectedMainCategory === cat.title ? "" : cat.title
+                )
+              }
+            >
+              {cat.title}
+            </div>
+          ))}
+        </div>
+      </div> */}
+
+{/* Main Categories Carousel */}
+<div className="relative">
+  <AllCategoriesPage/>
+</div>
       {/* Subcategories */}
       {selectedMainCategory && (
         <div className="mt-4 mb-6 flex flex-wrap gap-2">
@@ -377,9 +412,7 @@ const Home = () => {
               <button
                 key={sub}
                 onClick={() =>
-                  setSelectedSubCategory(
-                    selectedSubCategory === sub ? "" : sub
-                  )
+                  setSelectedSubCategory(selectedSubCategory === sub ? "" : sub)
                 }
                 className={`px-3 py-1 rounded border ${
                   selectedSubCategory === sub
@@ -406,7 +439,7 @@ const Home = () => {
           <p>No products found.</p>
         )}
       </div>
-
+          
       <Footer />
     </div>
   );

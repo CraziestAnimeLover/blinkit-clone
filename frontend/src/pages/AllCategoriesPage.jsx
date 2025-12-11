@@ -1,4 +1,5 @@
-import React from "react";
+import { useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const allCategories = [
   {
@@ -311,34 +312,64 @@ const allCategories = [
 ];
 
 export default function AllCategoriesPage() {
-  return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold mb-6 text-green-600">
-        All Categories
-      </h1>
+  const carouselRef = useRef(null);
 
-      <div className="grid md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
-        {allCategories.map((cat, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow"
-          >
-            <h2 className="text-lg font-semibold mb-3 text-gray-800">
-              {cat.title}
-            </h2>
-            <ul className="space-y-1 text-sm text-gray-600">
-              {cat.items.map((item, i) => (
-                <li
-                  key={i}
-                  className="hover:text-green-600 cursor-pointer transition"
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+  const scroll = (direction = "right") => {
+    if (carouselRef.current) {
+      const { scrollLeft, clientWidth, scrollWidth } = carouselRef.current;
+      const scrollAmount = direction === "left" ? -clientWidth : clientWidth;
+
+      let newScrollLeft = scrollLeft + scrollAmount;
+
+      // Loop back to start if we reach the end
+      if (newScrollLeft >= scrollWidth - clientWidth) {
+        newScrollLeft = 0;
+      }
+
+      carouselRef.current.scrollTo({
+        left: newScrollLeft,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  // Auto-scroll every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      scroll("right");
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="max-w-8xl mx-auto py-10">
+      <h1 className="text-2xl font-bold mb-6 text-green-600">All Categories</h1>
+
+      <div>
+        <div
+          ref={carouselRef}
+          className="flex space-x-4 overflow-x-auto scroll-smooth py-4"
+          style={{
+            scrollbarWidth: "none", // Firefox
+            msOverflowStyle: "none", // IE 10+
+          }}
+        >
+          {allCategories.map((cat, index) => (
+            <Link
+              key={index}
+              to={`/category/${encodeURIComponent(cat.title)}`}
+              className="min-w-[200px] bg-white rounded-xl shadow-md p-4 hover:shadow-lg cursor-pointer flex-shrink-0 transition"
+            >
+              <h2 className="text-lg font-semibold text-gray-800 text-center">
+                {cat.title}
+              </h2>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
+
+export { allCategories };
