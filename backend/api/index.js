@@ -3,9 +3,11 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
-import passport from "passport";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import connectDB from "../config/db.js";
+import passport from "passport";
 import "../config/passport.js";
 
 import authRoutes from "../routes/authRoutes.js";
@@ -14,6 +16,10 @@ import orderRoutes from "../routes/orderRoutes.js";
 import paymentRoutes from "../routes/paymentRoutes.js";
 
 const app = express();
+
+// Fix __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // DB
 connectDB();
@@ -33,15 +39,15 @@ app.use(
 app.use(passport.initialize());
 
 // Routes
-app.get("/", (req, res) => {
-  res.json({ success: true, message: "Backend running 🚀" });
-});
-
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
-app.use(express.static("frontend/dist"));
 
-// 🚨 DO NOT listen on a port
+// Health check
+app.get("/", (req, res) => {
+  res.json({ success: true, message: "Backend running 🚀" });
+});
+
+// ✅ VERY IMPORTANT
 export default app;
