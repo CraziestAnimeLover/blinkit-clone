@@ -41,6 +41,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use(express.static("frontend/dist"));
 
 // 🚨 DO NOT listen on a port
 export default app;
