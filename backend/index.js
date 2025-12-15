@@ -6,15 +6,14 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import connectDB from "../backend/config/db.js";
+import connectDB from "./config/db.js";
 import passport from "passport";
-import "../backend/config/passport.js";
+import "./config/passport.js";
 
-import authRoutes from "../backend/routes/authRoutes.js";
-import productRoutes from "../backend/routes/productRoutes.js";
-import orderRoutes from "../backend/routes/orderRoutes.js";
-import paymentRoutes from "../backend/routes/paymentRoutes.js";
-
+import authRoutes from "./routes/authRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 
