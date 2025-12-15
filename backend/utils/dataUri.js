@@ -4,7 +4,10 @@ import path from "path";
 const parser = new DatauriParser();
 
 const dataUri = (file) => {
-  return parser.format(path.extname(file.originalname), file.buffer);
+  if (!file) return null;
+
+  const extName = path.extname(file.originalname).toString();
+  return parser.format(extName, file.buffer);
 };
 
 export default dataUri;
