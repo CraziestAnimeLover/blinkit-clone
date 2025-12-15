@@ -43,7 +43,7 @@ app.use(passport.initialize());
 
 // API Routes (ALWAYS BEFORE STATIC)
 app.use("/api/auth", authRoutes);
-app.use("/api/products", productRoutes);
+app.use("/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 
