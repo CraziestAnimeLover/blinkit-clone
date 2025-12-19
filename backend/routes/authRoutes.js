@@ -1,5 +1,5 @@
 import express from "express";
-import { signup, login,forgotPassword, resetPassword } from "../controllers/authController.js";
+import { signup, login,forgotPassword, resetPassword ,googleCallback} from "../controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import adminAuth from "../middleware/adminMiddleware.js";
 import User from "../model/User.model.js";
@@ -18,18 +18,19 @@ router.post("/signup", signup);
 router.post("/login", login);
 
 // Logged-in user details
+
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
+    if (!user) return res.status(404).json({ msg: "User not found" });
     res.json({ user });
   } catch (error) {
     console.error("ME error:", error);
     res.status(500).json({ msg: "Server error" });
   }
 });
+
+
 
 /* ================================
    ADMIN ROUTES
@@ -82,13 +83,11 @@ router.get(
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
+// Callback
 router.get(
   "/google/callback",
-  passport.authenticate("google", {
-    failureRedirect: `${process.env.FRONTEND_URL}/login`,
-    successRedirect: `${process.env.FRONTEND_URL}/`,
-    session: false, // disable sessions if using JWT
-  })
+  passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+  googleCallback
 );
 
 

@@ -1,36 +1,17 @@
 import jwt from "jsonwebtoken";
+import User from "../model/User.model.js";
 
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  // 1. Check token
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({
-      success: false,
-      message: "Not Authorized. Login Again."
-    });
-  }
-
-  const token = authHeader.split(" ")[1];
+const authMiddleware = async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ msg: "No token, authorization denied" });
 
   try {
-    // 2. Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // 3. Attach user info to request
-  req.user = {
-  id: decoded.id,
-  email: decoded.email,
-  role: decoded.role
-};
-
-
+    req.user = await User.findById(decoded.id).select("-password");
     next();
-  } catch (error) {
-    return res.status(403).json({
-      success: false,
-      message: "Invalid or Expired Token",
-    });
+  } catch (err) {
+    console.error("Auth middleware error:", err);
+    res.status(401).json({ msg: "Token is not valid" });
   }
 };
 

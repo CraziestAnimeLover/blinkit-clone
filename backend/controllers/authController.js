@@ -76,14 +76,27 @@ export const login = async (req, res) => {
 
 // ---------------- GOOGLE CALLBACK ----------------
 export const googleCallback = (req, res) => {
-  const token = jwt.sign(
-    { id: req.user._id, email: req.user.email, role: req.user.role, isAdmin: req.user.isAdmin },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-  res.redirect(`${frontendUrl}/login/success?token=${token}`);
+  try {
+    if (!req.user) {
+      console.error("Google OAuth: req.user is undefined");
+      return res.status(400).send("User not found");
+    }
+
+    const token = jwt.sign(
+      { id: req.user._id, email: req.user.email, role: req.user.role, isAdmin: req.user.isAdmin },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    res.redirect(`${frontendUrl}/login/success?token=${token}`);
+  } catch (err) {
+    console.error("Google OAuth callback error:", err);
+    res.status(500).send("OAuth failed");
+  }
 };
+
+
 
 // ---------------- FORGOT PASSWORD ----------------
 export const forgotPassword = async (req, res) => {
