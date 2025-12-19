@@ -5,6 +5,19 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
+
+    <!-- Content Security Policy -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' https://checkout.razorpay.com https://maps.googleapis.com https://vercel.live;
+        connect-src 'self' https://checkout.razorpay.com https://maps.googleapis.com https://oauth2.googleapis.com https://vercel.live;
+        img-src 'self' data: https://maps.gstatic.com https://lh3.googleusercontent.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+      "
+    />
   </head>
   <body>
     <div id="root"></div>
