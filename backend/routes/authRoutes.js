@@ -1,5 +1,5 @@
 import express from "express";
-import { signup, login } from "../controllers/authController.js";
+import { signup, login,forgotPassword, resetPassword } from "../controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import adminAuth from "../middleware/adminMiddleware.js";
 import User from "../model/User.model.js";
@@ -68,7 +68,11 @@ router.put("/users/:id", adminAuth, async (req, res) => {
   }
 });
 
+// Forgot password
+router.post('/forgot-password', forgotPassword);
 
+// Reset password
+router.post('/reset-password/:token', resetPassword);
 
 
 

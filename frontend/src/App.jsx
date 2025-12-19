@@ -25,6 +25,8 @@ import AdminProducts from "./pages/admin/pages/AdminProducts";
 import ProfilePage from "./pages/ProfilePage";
 import LoginSuccess from "./pages/LoginSuccess";
 import CategoryPage from "./pages/CategoryPage";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 
 // ✅ This component can safely use useLocation()
@@ -40,6 +42,10 @@ function Layout() {
           <Route path="/login" element={<Login />} />
   <Route path="/login/success" element={<LoginSuccess />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword/>} />
+<Route path="/reset-password/:token" element={<ResetPassword />} />
+
+
           <Route path="/profile" element={<ProfilePage />} />
 
       

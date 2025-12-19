@@ -38,9 +38,13 @@ const Signup = () => {
     }
   };
 
-  const handleGoogleSignup = () => {
-    window.location.href = `${backendUrl}/api/auth/google`;
-  };
+const handleGoogleSignup = () => {
+  if (!backendUrl) {
+    console.error("VITE_BACKEND_URL is not defined");
+    return;
+  }
+  window.location.href = `${backendUrl}/api/auth/google`;
+};
 
   return (
     <div className="max-w-sm mx-auto mt-20 p-6 bg-white rounded shadow">

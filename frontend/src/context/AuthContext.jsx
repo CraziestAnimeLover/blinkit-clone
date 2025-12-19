@@ -29,6 +29,17 @@ export const AuthProvider = ({ children }) => {
     window.location.href = `${BACKEND_URL}/api/auth/google`;
   };
 
+
+const requestPasswordReset = async (email) => {
+  return await axios.post(`${BACKEND_URL}/api/auth/forgot-password`, { email });
+};
+
+
+// Reset password using token
+const resetPassword = async (token, newPassword) => {
+  return await axios.post(`${BACKEND_URL}/api/auth/reset-password/${token}`, { password: newPassword });
+};///
+
   // Set user from token (used by /login/success)
   const setUserFromToken = async (token) => {
     localStorage.setItem("token", token);
@@ -52,7 +63,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, signup, login, logout, loginWithGoogle, loading, setUserFromToken }}>
+    <AuthContext.Provider value={{ user, signup, login, logout, loginWithGoogle, loading, setUserFromToken,requestPasswordReset, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

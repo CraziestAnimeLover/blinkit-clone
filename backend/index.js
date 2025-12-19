@@ -23,6 +23,9 @@ const __dirname = path.dirname(__filename);
 
 // DB
 connectDB();
+const PORT = process.env.PORT || 8000;
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // Middleware
 app.use(express.json());

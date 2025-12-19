@@ -70,6 +70,12 @@ const Login = () => {
         <Link to="/signup" className="text-green-500 hover:underline">
           Sign up
         </Link>
+        <p className="text-center mt-2 text-sm">
+  <Link to="/forgot-password" className="text-green-500 hover:underline">
+    Forgot Password?
+  </Link>
+</p>
+
       </p>
     </div>
   );
