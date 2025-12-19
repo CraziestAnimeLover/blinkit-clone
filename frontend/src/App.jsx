@@ -60,11 +60,12 @@ function Layout() {
             }
           />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/myorders" element={<MyOrders/>} />
+          <Route path="/my-orders" element={<MyOrders/>} />
           
            <Route path="/address" element={<Address />} />
         <Route path="/payment/:orderId" element={<Payment />} />
         <Route path="/order-confirmation" element={<OrderConfirmation />} />
+         <Route path="/myorders" element={<MyOrders/>} />
           <Route path="/product/:id" element={<ProductDetails />} />
 
           <Route path="/all-categories" element={<AllCategoriesPage />} />

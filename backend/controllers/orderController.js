@@ -1,26 +1,15 @@
 import Order from "../model/Order.js";
-
 import jwt from "jsonwebtoken";
 
-
-
+// Create a new order
 export const createOrder = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "No token provided" });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // decode.user.id since your token structure is { user: { id, role } }
-    const userId = decoded.id;
-
+    const userId = req.user.id; // authMiddleware sets req.user
     const { items, address, paymentMethod } = req.body;
 
-    if (!items || items.length === 0) {
+    if (!items || items.length === 0)
       return res.status(400).json({ message: "No items provided" });
-    }
 
-    // Calculate total
     const totalAmount = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
@@ -29,7 +18,7 @@ export const createOrder = async (req, res) => {
     const order = await Order.create({
       userId,
       items: items.map((item) => ({
-        productId: item.productId || item._id, // handle both possible keys
+        productId: item.productId || item._id,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
@@ -37,21 +26,29 @@ export const createOrder = async (req, res) => {
       totalAmount,
       address,
       paymentMethod: paymentMethod || "COD",
+      paymentStatus: paymentMethod === "ONLINE" ? "PAID" : "PENDING",
+      amountPaid: paymentMethod === "ONLINE" ? totalAmount : 0,
     });
 
-    res.status(201).json({ success: true, message: "Order placed successfully", order });
+    res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      order,
+    });
   } catch (err) {
     console.error("❌ Order error:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
-
-
+// Get all orders of a user
 export const getUserOrders = async (req, res) => {
   try {
-    const userId = req.user.id; // Assuming authMiddleware adds req.user
-    const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
+    const userId = req.user.id;
+    const orders = await Order.find({ userId })
+      .sort({ createdAt: -1 })
+      .populate("items.productId"); // optional, if product is a ref
+
     res.json({ success: true, orders });
   } catch (err) {
     console.error(err);
@@ -59,26 +56,44 @@ export const getUserOrders = async (req, res) => {
   }
 };
 
+// Get latest order of a user
+export const getLatestOrder = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const latestOrder = await Order.findOne({ userId })
+      .sort({ createdAt: -1 })
+      .populate("items.productId");
 
-// Route: POST /api/orders/:id/payment
+    if (!latestOrder)
+      return res.status(404).json({ message: "No orders found" });
+
+    res.json({ success: true, order: latestOrder });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// Add payment info to an existing order
 export const addPaymentMethod = async (req, res) => {
-  const { method, amount } = req.body; // method: "COD" or "ONLINE"
+  const { method, amount } = req.body; // method: COD or ONLINE
   const { id } = req.params; // orderId
+
   try {
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
     if (method === "COD") {
-      order.paymentMethod = "COD";       // <-- Add here
-      order.paymentStatus = "PENDING";   // <-- Add here
+      order.paymentMethod = "COD";
+      order.paymentStatus = "PENDING";
       order.amountPaid = 0;
     } else if (method === "ONLINE") {
-      order.paymentMethod = "ONLINE";    // <-- Add here
-      order.paymentStatus = "PAID";      // <-- Add here
-      order.amountPaid = amount;          // amount paid from Razorpay
+      order.paymentMethod = "ONLINE";
+      order.paymentStatus = "PAID";
+      order.amountPaid = amount;
     }
 
-    await order.save();                   // <-- Save changes to DB
+    await order.save();
     res.json({ message: "Payment updated successfully", order });
   } catch (err) {
     console.error(err);
@@ -86,22 +101,23 @@ export const addPaymentMethod = async (req, res) => {
   }
 };
 
+// Admin updates order status
+// PUT /api/orders/:id/status
+export const updateOrderStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body; // expects "PLACED" | "DELIVERED" | "CANCELLED"
 
-export const placeOrder = async (req, res) => {
   try {
-    const userId = req.userId;  // this comes from auth middleware
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
-    const order = await Order.create({
-      userId,
-      items: req.body.items,
-      amount: req.body.amount,
-      address: req.body.address,
-      paymentMethod: req.body.paymentMethod
-    });
+    order.orderStatus = status; // update orderStatus, NOT paymentStatus
+    await order.save();
 
-    res.json({ success: true, order });
+    res.json({ message: "Order status updated", order });
   } catch (err) {
-    console.log("Place order error:", err);
-    res.status(500).json({ message: "Something went wrong" });
+    console.error("Update status error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
+

@@ -3,11 +3,19 @@ import { ShoppingCart, User, ChevronDown, Clock } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import { useContext, useState, useEffect } from "react";
+import LocationDropdown from "./LocationDropdown";
 
 const Navbar = () => {
   const { cart } = useCart();
   const { user, logout } = useContext(AuthContext);
   const isAdmin = user?.role === "admin";
+
+  const [selectedAddress, setSelectedAddress] = useState({
+    label: "HOME",
+    name: "Craziest Anime's Lover",
+    address:
+      "B62, Pocket B, South City I, Sector 30, Gurugram, Haryana 122001, India",
+  });
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -31,10 +39,22 @@ const Navbar = () => {
           Blinkit
         </Link>
 
-        <div className="flex items-center bg-green-100 text-green-700 text-sm font-semibold px-2 py-1 rounded-md animate-pulse">
-          <Clock className="w-4 h-4 mr-1 text-green-600" />
-          Delivery in <span className="ml-1 font-bold">8 mins</span>
+        {/* Always visible delivery info */}
+        <div className="flex flex-col bg-green-100 text-green-700 text-sm font-semibold px-3 py-2 rounded-md animate-pulse">
+          <div className="flex items-center gap-1">
+            <Clock className="w-4 h-4 text-green-600" />
+            <span>
+              Delivery in <span className="font-bold">10 mins</span>
+            </span>
+          </div>
+          <span className="text-xs mt-1">{selectedAddress.address}</span>
         </div>
+
+        {/* Dropdown to change address */}
+        <LocationDropdown
+          selectedAddress={selectedAddress}
+          setSelectedAddress={setSelectedAddress}
+        />
       </div>
 
       {/* Search Bar */}
@@ -91,7 +111,9 @@ const Navbar = () => {
             {/* Dropdown Menu with animation */}
             <div
               className={`absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-lg z-50 transform transition-all duration-300 ease-in-out ${
-                dropdownOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                dropdownOpen
+                  ? "opacity-100 scale-100"
+                  : "opacity-0 scale-95 pointer-events-none"
               }`}
             >
               <p className="px-4 py-2 text-sm text-gray-700 border-b">

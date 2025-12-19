@@ -14,12 +14,8 @@ const Payment = () => {
   const HANDLING_CHARGE = 2;
   const SMALL_CART_CHARGE = 20;
 
-  const grandTotal =
-    total + DELIVERY_CHARGE + HANDLING_CHARGE + SMALL_CART_CHARGE;
+  const grandTotal = total + DELIVERY_CHARGE + HANDLING_CHARGE + SMALL_CART_CHARGE;
 
-  // -------------------------------------------------------
-  // HANDLE PAYMENT
-  // -------------------------------------------------------
   const handlePayment = async () => {
     if (!token) return alert("Please login first");
 
@@ -28,29 +24,21 @@ const Payment = () => {
     // ---------------------------
     if (method === "razorpay") {
       try {
-        // 1) Create Razorpay order on backend
         const { data: razorpayOrder } = await axios.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/payment/create-order`,
-          {
-            amount: grandTotal,
-            orderId,
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { amount: grandTotal, orderId },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        // 2) Razorpay checkout options
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: razorpayOrder.amount,
           currency: "INR",
           name: "Blinkit Clone",
           description: "Order Payment",
-          order_id: razorpayOrder.id, // ✔ FIXED
-          handler: async function (response) {
+          order_id: razorpayOrder.id,
+          handler: async (response) => {
             try {
-              // 3) Verify payment on backend
               await axios.post(
                 `${import.meta.env.VITE_BACKEND_URL}/api/payment/verify`,
                 {
@@ -59,22 +47,24 @@ const Payment = () => {
                   razorpay_signature: response.razorpay_signature,
                   orderId,
                 },
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
+                { headers: { Authorization: `Bearer ${token}` } }
               );
 
               clearCart();
-              navigate("/order-confirmation");
+
+              // Fetch latest order
+              const { data } = await axios.get(
+                `${import.meta.env.VITE_BACKEND_URL}/api/orders/latest`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+
+              navigate("/order-confirmation", { state: { order: data.order } });
             } catch (verifyErr) {
               console.error("Verify Error:", verifyErr);
               alert("Payment verification failed");
             }
           },
-          prefill: {
-            name: "Customer",
-            email: "customer@example.com",
-          },
+          prefill: { name: "Customer", email: "customer@example.com" },
           theme: { color: "#53a20e" },
         };
 
@@ -93,12 +83,19 @@ const Payment = () => {
       try {
         await axios.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/orders/${orderId}/payment`,
-          { method: "cod" },
+          { method: "COD", amount: grandTotal },
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
         clearCart();
-        navigate("/order-confirmation");
+
+        // Fetch latest order
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/orders/latest`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        navigate("/order-confirmation", { state: { order: data.order } });
       } catch (err) {
         console.error("COD Error:", err);
         alert("Failed to place COD order");
@@ -110,23 +107,13 @@ const Payment = () => {
     <div className="max-w-xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Select Payment Method</h1>
 
-      {/* Razorpay Option */}
       <label className="flex items-center gap-2 border p-3 rounded mb-2 cursor-pointer">
-        <input
-          type="radio"
-          checked={method === "razorpay"}
-          onChange={() => setMethod("razorpay")}
-        />
+        <input type="radio" checked={method === "razorpay"} onChange={() => setMethod("razorpay")} />
         Pay Online (UPI / Card / Wallet)
       </label>
 
-      {/* COD Option */}
       <label className="flex items-center gap-2 border p-3 rounded mb-2 cursor-pointer">
-        <input
-          type="radio"
-          checked={method === "cod"}
-          onChange={() => setMethod("cod")}
-        />
+        <input type="radio" checked={method === "cod"} onChange={() => setMethod("cod")} />
         Cash on Delivery (COD)
       </label>
 
