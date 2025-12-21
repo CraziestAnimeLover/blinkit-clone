@@ -1,6 +1,7 @@
 import Product from "../model/Product.js";
 import cloudinary from "../config/cloudinary.js";
 import dataUri from "../utils/dataUri.js";
+import mongoose from "mongoose";
 
 
 // Create new product

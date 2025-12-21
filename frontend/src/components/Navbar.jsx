@@ -1,12 +1,13 @@
+import { useEffect, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart, User, ChevronDown, Clock } from "lucide-react";
+import axios from "axios";
+
 import { useCart } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
-import { useContext, useState, useEffect } from "react";
 import LocationDropdown from "./LocationDropdown";
 import SearchDropdown from "./SearchDropdown";
 import { allCategories } from "../data/allCategories.js";
-import products from "../data/products.js";
 
 const Navbar = () => {
   const { cart } = useCart();
@@ -27,6 +28,17 @@ const Navbar = () => {
   const [results, setResults] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
 
+  // 🔹 Backend products
+  const [products, setProducts] = useState([]);
+
+  // Fetch products from backend
+  useEffect(() => {
+    axios
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/products`)
+      .then((res) => setProducts(res.data.products))
+      .catch((err) => console.error("Error fetching products:", err));
+  }, []);
+
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // Auto-close profile dropdown
@@ -37,7 +49,7 @@ const Navbar = () => {
     }
   }, [dropdownOpen]);
 
-  // 🔍 Blinkit-style search logic
+  // 🔍 Search logic
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -48,19 +60,19 @@ const Navbar = () => {
       const q = query.toLowerCase();
 
       const productResults = products
-        .filter(p => p.name.toLowerCase().includes(q))
+        .filter((p) => p.name.toLowerCase().includes(q))
         .slice(0, 5)
-        .map(p => ({
+        .map((p) => ({
           name: p.name,
           type: "Product",
           image: p.image,
-          link: `/product/${p.id}`,
+          link: `/product/${p._id}`, // Use backend _id
         }));
 
       const categoryResults = allCategories
-        .filter(c => c.title.toLowerCase().includes(q))
+        .filter((c) => c.title.toLowerCase().includes(q))
         .slice(0, 3)
-        .map(c => ({
+        .map((c) => ({
           name: c.title,
           type: "Category",
           link: `/category/${encodeURIComponent(c.title)}`,
@@ -174,10 +186,16 @@ const Navbar = () => {
                   : "opacity-0 scale-95 pointer-events-none"
               }`}
             >
-              <Link to="/profile" className="block px-4 py-2 text-sm hover:bg-gray-100">
+              <Link
+                to="/profile"
+                className="block px-4 py-2 text-sm hover:bg-gray-100"
+              >
                 My Profile
               </Link>
-              <Link to="/myorders" className="block px-4 py-2 text-sm hover:bg-gray-100">
+              <Link
+                to="/myorders"
+                className="block px-4 py-2 text-sm hover:bg-gray-100"
+              >
                 My Orders
               </Link>
               <button
