@@ -1,30 +1,34 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 const Login = () => {
-  const { login, loginWithGoogle, user } = useContext(AuthContext);
+  const { login, loginWithGoogle, user, setUserFromToken } = useContext(AuthContext);
   const navigate = useNavigate();
-  // const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const location = useLocation();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
- 
+
+  // Handle token from Google OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    if (token) {
+      setUserFromToken(token).then(() => navigate("/"));
+    }
+  }, [location.search]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await login(form.email, form.password);
-      // Do NOT redirect here, user will update after login()
     } catch (err) {
       setError(err.response?.data?.msg || 'Login failed');
     }
   };
 
-  // const handleGoogleLogin = () => {
-  //   window.location.href = `${backendUrl}/api/auth/google`;
-  // };
-
-  // Redirect after user state updates
+  // Redirect after normal login
   useEffect(() => {
     if (user) {
       navigate(user.isAdmin ? "/admin" : "/");
@@ -57,13 +61,13 @@ const Login = () => {
       </form>
 
       {/* Google Login Button */}
-    <button
-  className="w-full mt-4 py-2 border rounded flex items-center justify-center gap-2 hover:bg-gray-100"
-  onClick={loginWithGoogle} // use context function
->
-  <img src="/google.png" alt="Google" className="w-7 h-7" />
-  Sign in with Google
-</button>
+      <button
+        className="w-full mt-4 py-2 border rounded flex items-center justify-center gap-2 hover:bg-gray-100"
+        onClick={loginWithGoogle}
+      >
+        <img src="/google.png" alt="Google" className="w-7 h-7" />
+        Sign in with Google
+      </button>
 
       <p className="text-center mt-4 text-sm">
         Don't have an account?{' '}
@@ -71,11 +75,10 @@ const Login = () => {
           Sign up
         </Link>
         <p className="text-center mt-2 text-sm">
-  <Link to="/forgot-password" className="text-green-500 hover:underline">
-    Forgot Password?
-  </Link>
-</p>
-
+          <Link to="/forgot-password" className="text-green-500 hover:underline">
+            Forgot Password?
+          </Link>
+        </p>
       </p>
     </div>
   );
