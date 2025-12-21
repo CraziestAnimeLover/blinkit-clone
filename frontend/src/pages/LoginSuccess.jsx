@@ -1,24 +1,22 @@
-import { useEffect, useContext } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const LoginSuccess = () => {
-  const { setUserFromToken } = useContext(AuthContext);
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = searchParams.get("token");
-    if (token) {
-      // Store token and update user state
-      setUserFromToken(token);
-      navigate("/"); // redirect to home or dashboard
-    } else {
-      navigate("/login"); // fallback
-    }
-  }, [searchParams, navigate, setUserFromToken]);
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
 
-  return <div className="text-center mt-20">Logging in...</div>;
+    if (token) {
+      localStorage.setItem("token", token);
+      navigate("/");
+    } else {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  return <p>Logging you in...</p>;
 };
 
 export default LoginSuccess;
