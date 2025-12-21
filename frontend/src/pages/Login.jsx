@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Login = () => {
   const { login, loginWithGoogle, user, setUserFromToken } = useContext(AuthContext);
@@ -30,9 +29,7 @@ const Login = () => {
 
   // Redirect after normal login
   useEffect(() => {
-    if (user) {
-      navigate(user.isAdmin ? "/admin" : "/");
-    }
+    if (user) navigate(user.isAdmin ? "/admin" : "/");
   }, [user, navigate]);
 
   return (
@@ -60,7 +57,6 @@ const Login = () => {
         </button>
       </form>
 
-      {/* Google Login Button */}
       <button
         className="w-full mt-4 py-2 border rounded flex items-center justify-center gap-2 hover:bg-gray-100"
         onClick={loginWithGoogle}
@@ -71,9 +67,7 @@ const Login = () => {
 
       <p className="text-center mt-4 text-sm">
         Don't have an account?{' '}
-        <Link to="/signup" className="text-green-500 hover:underline">
-          Sign up
-        </Link>
+        <Link to="/signup" className="text-green-500 hover:underline">Sign up</Link>
         <p className="text-center mt-2 text-sm">
           <Link to="/forgot-password" className="text-green-500 hover:underline">
             Forgot Password?

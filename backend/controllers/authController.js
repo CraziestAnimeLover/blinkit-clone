@@ -4,34 +4,24 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 
-
-
-
-
 // ---------------- SIGNUP ----------------
 export const signup = async (req, res) => {
   try {
     const { name, email, password, address, role } = req.body;
 
-    // Check if user exists
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ msg: "User already exists" });
 
-    // Hash password
     const hashed = await bcrypt.hash(password, 10);
-
-    // Create new user
     user = new User({ name, email, password: hashed, address, role, isAdmin: role === "admin" });
     await user.save();
 
-    // Generate JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role, isAdmin: user.isAdmin },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Return user data without password
     const userData = await User.findById(user._id).select("-password");
     res.json({ token, user: userData });
   } catch (err) {
@@ -44,28 +34,22 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ msg: "Invalid credentials" });
 
-    // Check if password exists (skip for OAuth users)
     if (!user.password) {
       return res.status(400).json({ msg: "Password login not available. Use Google login." });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
-    // Generate JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role, isAdmin: user.isAdmin },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Return user data without password
     const userData = await User.findById(user._id).select("-password");
     res.json({ token, user: userData });
   } catch (err) {
@@ -89,14 +73,13 @@ export const googleCallback = (req, res) => {
     );
 
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    res.redirect(`${frontendUrl}/login/success?token=${token}`);
+    // Pass token as query param to /login
+    res.redirect(`${frontendUrl}/login?token=${token}`);
   } catch (err) {
     console.error("Google OAuth callback error:", err);
     res.status(500).send("OAuth failed");
   }
 };
-
-
 
 // ---------------- FORGOT PASSWORD ----------------
 export const forgotPassword = async (req, res) => {
@@ -105,13 +88,11 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    // Generate token
     const token = crypto.randomBytes(32).toString("hex");
     user.resetToken = token;
     user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    // Send email
     const transporter = nodemailer.createTransport({
       service: "Gmail",
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
@@ -136,8 +117,7 @@ export const forgotPassword = async (req, res) => {
 export const resetPassword = async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
-console.log("Params:", req.params);   // token
-  console.log("Body:", req.body);       // password
+
   try {
     const user = await User.findOne({
       resetToken: token,
@@ -145,7 +125,6 @@ console.log("Params:", req.params);   // token
     });
     if (!user) return res.status(400).json({ msg: "Invalid or expired token" });
 
-    // Hash new password
     const hashed = await bcrypt.hash(password, 10);
     user.password = hashed;
     user.resetToken = undefined;
