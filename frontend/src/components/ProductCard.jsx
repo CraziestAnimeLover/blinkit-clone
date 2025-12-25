@@ -91,7 +91,7 @@ const ProductCard = ({ product }) => {
       {/* ⚠️ Stock Info */}
       {isOutOfStock ? (
         <p className="mt-2 text-xs text-red-600 font-semibold">
-          Out of stock
+          Out of stocks
         </p>
       ) : isLowStock ? (
         <p className="mt-2 text-xs text-orange-600 font-semibold">
