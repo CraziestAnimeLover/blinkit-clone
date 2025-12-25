@@ -442,7 +442,7 @@ const Home = () => {
           <p>No products found.</p>
         )}
       </div>
-          {/* <CategoriesSection/> */}
+          <CategoriesSection/>
           {/* <CategoryPage/> */}
       <Footer />
     </div>
