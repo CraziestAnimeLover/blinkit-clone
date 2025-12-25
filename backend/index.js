@@ -11,7 +11,7 @@ import passport from "passport";
 import "./config/passport.js";
 import smsRoutes from "./routes/smsRoutes.js"
 import authRoutes from "./routes/authRoutes.js";
-import adminRoutes from "./routes/Admin.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import recommendationRoutes from "./routes/recommendedroutes.js";
 import verifyRoutes from "./routes/verifyRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
