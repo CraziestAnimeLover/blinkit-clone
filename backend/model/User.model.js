@@ -53,6 +53,4 @@ const UserSchema = new mongoose.Schema(
 );
 
 // ✅ Use existing model if it exists, otherwise create
-const User = mongoose.models.User || mongoose.model("User", UserSchema);
-
-export default User;
+export default mongoose.models.User || mongoose.model("User", UserSchema);
