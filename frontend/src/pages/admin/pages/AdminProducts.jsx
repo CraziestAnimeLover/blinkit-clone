@@ -1,125 +1,268 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {allCategories} from "../../../data/allCategories.js"
+import { allCategories } from "../../../data/allCategories.js";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ name: "", description: "", price: "", category: "", stock: "", image: null });
+  const [images, setImages] = useState([]);
+
+  const [form, setForm] = useState({
+    name: "",
+    brand: "",
+    description: "",
+    category: "",
+    variants: [
+      { label: "500 g", price: "", mrp: "", stock: "" },
+    ],
+  });
+
   const token = localStorage.getItem("token");
 
+  // 🔹 Load products
   const loadProducts = async () => {
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/products`);
-      setProducts(res.data.products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-    } catch (err) {
-      console.error("Failed to load products:", err);
-    }
+    const res = await axios.get(
+      `${import.meta.env.VITE_BACKEND_URL}/api/products`
+    );
+    setProducts(res.data.products);
   };
 
-  useEffect(() => { loadProducts(); }, []);
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
+  // 🔹 Handle text inputs
   const handleChange = (e) => {
-    if (e.target.name === "image") setForm({ ...form, image: e.target.files[0] });
-    else setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
+  // 🔹 Handle variants
+  const handleVariantChange = (index, field, value) => {
+    const updated = [...form.variants];
+    updated[index][field] = value;
+    setForm({ ...form, variants: updated });
+  };
+
+  const addVariant = () => {
+    setForm({
+      ...form,
+      variants: [...form.variants, { label: "", price: "", mrp: "", stock: "" }],
+    });
+  };
+
+  // 🔹 Handle images
+  const handleImages = (e) => {
+    setImages([...e.target.files]);
+  };
+
+  // 🔹 Submit product
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
     const formData = new FormData();
     formData.append("name", form.name);
+    formData.append("brand", form.brand);
     formData.append("description", form.description);
-    formData.append("price", Number(form.price));  // ✅ convert to number
     formData.append("category", form.category);
-    formData.append("stock", Number(form.stock));  // ✅ convert to number
-    if (form.image) formData.append("image", form.image);
+    formData.append("variants", JSON.stringify(form.variants));
 
-    await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/products`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
+    images.forEach((img) => {
+      formData.append("images", img);
     });
 
-    alert("✔ Product Added");
+    await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/products`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    alert("✅ Product Added");
     loadProducts();
-    setForm({ name: "", description: "", price: "", category: "", stock: "", image: null });
-  } catch (err) {
-    console.error("Error creating product:", err.response?.data || err.message);
-    alert("Failed: " + err.response?.data?.message || err.message);
-  }
-};
 
+    setForm({
+      name: "",
+      brand: "",
+      description: "",
+      category: "",
+      variants: [{ label: "", price: "", mrp: "", stock: "" }],
+    });
+    setImages([]);
+  };
 
+  // 🔹 Delete product
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure to delete?")) return;
-    try {
-      await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert("🗑 Deleted");
-      loadProducts();
-    } catch (err) {
-      alert("Failed to delete: " + err.response?.data?.message || err.message);
-    }
+    if (!confirm("Delete product?")) return;
+
+    await axios.delete(
+      `${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    alert("🗑 Deleted");
+    loadProducts();
   };
 
   return (
-    <div className="p-4 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center lg:text-left">Products</h1>
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Products Table */}
-        <div className="flex-1 overflow-x-auto border rounded bg-white p-3">
-          <table className="min-w-full border text-sm">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="p-2 border">Image</th>
-                <th className="p-2 border">Name</th>
-                <th className="p-2 border">Price</th>
-                <th className="p-2 border">Category</th>
-                <th className="p-2 border">Stock</th>
-                <th className="p-2 border text-center">Actions</th>
+    <div className="max-w-7xl mx-auto px-4">
+      <h1 className="text-3xl font-bold mb-6">Admin Products</h1>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* ADD PRODUCT */}
+        <form
+          onSubmit={handleSubmit}
+          className="border p-4 rounded bg-white space-y-3"
+        >
+          <input
+            name="name"
+            placeholder="Product name"
+            value={form.name}
+            onChange={handleChange}
+            className="border p-2 w-full"
+            required
+          />
+
+          <input
+            name="brand"
+            placeholder="Brand"
+            value={form.brand}
+            onChange={handleChange}
+            className="border p-2 w-full"
+          />
+
+          <select
+            name="category"
+            value={form.category}
+            onChange={handleChange}
+            className="border p-2 w-full"
+            required
+          >
+            <option value="">Select category</option>
+            {allCategories.map((group) => (
+              <optgroup key={group.title} label={group.title}>
+                {group.items.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+
+          <textarea
+            name="description"
+            placeholder="Description"
+            value={form.description}
+            onChange={handleChange}
+            className="border p-2 w-full"
+          />
+
+          {/* VARIANTS */}
+          <div className="space-y-2">
+            <h3 className="font-semibold">Variants</h3>
+            {form.variants.map((v, i) => (
+              <div key={i} className="grid grid-cols-4 gap-2">
+                <input
+                  placeholder="Size"
+                  value={v.label}
+                  onChange={(e) =>
+                    handleVariantChange(i, "label", e.target.value)
+                  }
+                  className="border p-1"
+                />
+                <input
+                  placeholder="Price"
+                  value={v.price}
+                  onChange={(e) =>
+                    handleVariantChange(i, "price", e.target.value)
+                  }
+                  className="border p-1"
+                />
+                <input
+                  placeholder="MRP"
+                  value={v.mrp}
+                  onChange={(e) =>
+                    handleVariantChange(i, "mrp", e.target.value)
+                  }
+                  className="border p-1"
+                />
+                <input
+                  placeholder="Stock"
+                  value={v.stock}
+                  onChange={(e) =>
+                    handleVariantChange(i, "stock", e.target.value)
+                  }
+                  className="border p-1"
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addVariant}
+              className="text-sm text-blue-600"
+            >
+              + Add Variant
+            </button>
+          </div>
+
+          <input
+            type="file"
+            multiple
+            onChange={handleImages}
+            className="border p-2 w-full"
+          />
+
+          <button className="bg-green-600 text-white py-2 rounded w-full">
+            Add Product
+          </button>
+        </form>
+
+        {/* PRODUCTS LIST */}
+        <div className="lg:col-span-2 border rounded bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="p-2">Image</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Variants</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {products.length === 0 && (
-                <tr><td colSpan="6" className="p-4 text-center text-gray-500">No products found.</td></tr>
-              )}
               {products.map((p) => (
-                <tr key={p._id} className="border hover:bg-gray-50 transition">
-                  <td className="p-2 border"><img src={p.image} alt={p.name} className="w-16 h-16 object-cover rounded" /></td>
-                  <td className="p-2 border font-medium">{p.name}</td>
-                  <td className="p-2 border">₹{p.price}</td>
-                  <td className="p-2 border">{p.category}</td>
-                  <td className="p-2 border">{p.stock}</td>
-                  <td className="p-2 border text-center">
-                    <button onClick={() => handleDelete(p._id)} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Delete</button>
+                <tr key={p._id} className="border-t">
+                  <td className="p-2">
+                    <img
+                      src={p.images?.[0]?.url}
+                      className="w-12 h-12 object-cover"
+                    />
+                  </td>
+                  <td>{p.name}</td>
+                  <td>{p.category}</td>
+                  <td>{p.variants.length}</td>
+                  <td>
+                    <button
+                      onClick={() => handleDelete(p._id)}
+                      className="bg-red-500 text-white px-2 py-1 rounded"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
+              {products.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="p-4 text-center">
+                    No products
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-        </div>
-
-        {/* Add Product Form */}
-        <div className="w-full lg:w-1/3 border p-4 rounded bg-white shadow">
-          <h2 className="text-xl font-semibold mb-4 text-center lg:text-left">Add Product</h2>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <input name="name" placeholder="Name" value={form.name} onChange={handleChange} className="border p-2 w-full rounded" />
-            <input name="price" placeholder="Price" value={form.price} onChange={handleChange} className="border p-2 w-full rounded" />
-            <select name="category" value={form.category} onChange={handleChange} className="border p-2 w-full rounded">
-              <option value="">Select Category</option>
-              {allCategories.map(group => (
-                <optgroup key={group.title} label={group.title}>
-                  {group.items.map(item => <option key={item} value={item}>{item}</option>)}
-                </optgroup>
-              ))}
-            </select>
-            <input name="description" placeholder="Description" value={form.description} onChange={handleChange} className="border p-2 w-full rounded" />
-            <input name="stock" placeholder="Stock" value={form.stock} onChange={handleChange} className="border p-2 w-full rounded" />
-            <input type="file" name="image" onChange={handleChange} className="border p-2 w-full rounded" />
-            <button className="bg-green-600 text-white px-4 py-2 rounded w-full hover:bg-green-700 transition">Add Product</button>
-          </form>
         </div>
       </div>
     </div>

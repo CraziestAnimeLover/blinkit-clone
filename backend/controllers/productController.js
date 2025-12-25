@@ -1,80 +1,87 @@
 import Product from "../model/Product.js";
 import cloudinary from "../config/cloudinary.js";
 import dataUri from "../utils/dataUri.js";
-import mongoose from "mongoose";
 
-
-// Create new product
-// Upload product with image
+// CREATE PRODUCT
 export const createProduct = async (req, res) => {
   try {
-    console.log("REQ.BODY:", req.body);
-    console.log("REQ.FILE:", req.file);
+    const {
+      name,
+      brand,
+      description,
+      category,
+      variants,
+      isFeatured,
+    } = req.body;
 
-    let imageUrl = "";
-    if (req.file) {
-      const file = dataUri(req.file).content;
-      const uploadResponse = await cloudinary.uploader.upload(file, { folder: "products" });
-      imageUrl = uploadResponse.secure_url;
+    // Upload images
+    let images = [];
+    if (req.files?.length) {
+      for (const file of req.files) {
+        const fileUri = dataUri(file).content;
+        const uploaded = await cloudinary.uploader.upload(fileUri, {
+          folder: "products",
+        });
+
+        images.push({
+          url: uploaded.secure_url,
+          publicId: uploaded.public_id,
+        });
+      }
     }
-
-    const { name, description, price, category, stock } = req.body;
 
     const product = await Product.create({
       name,
+      brand,
       description,
-      price: Number(price),
       category,
-      stock: Number(stock),
-      image: imageUrl,
+      images,
+      variants: JSON.parse(variants), // IMPORTANT
+      isFeatured,
     });
 
     res.status(201).json({ success: true, product });
   } catch (err) {
-    console.error("PRODUCT CREATE ERROR:", err.message);
+    console.error("CREATE PRODUCT ERROR:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-
-
-// Get all products
+// GET ALL PRODUCTS
 export const getProducts = async (req, res) => {
   try {
-    const products = await Product.find();
+    const products = await Product.find({ isActive: true });
     res.status(200).json({ success: true, products });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Get single product by ID
+// GET PRODUCT BY ID
 export const getProductById = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ success: false, message: "Invalid product ID" });
-    }
-
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    if (!product)
+      return res.status(404).json({ message: "Product not found" });
 
-    res.status(200).json({ success: true, product });
-  } catch (error) {
-    console.log("GET PRODUCT ERROR:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
-
-
-
-// admin
+// UPDATE PRODUCT
 export const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "Not found" });
 
     Object.assign(product, req.body);
+
+    if (req.body.variants) {
+      product.variants = JSON.parse(req.body.variants);
+    }
+
     await product.save();
     res.json({ success: true, product });
   } catch (err) {
@@ -82,10 +89,16 @@ export const updateProduct = async (req, res) => {
   }
 };
 
+// SOFT DELETE
 export const deleteProduct = async (req, res) => {
   try {
-    await Product.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Product deleted" });
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Not found" });
+
+    product.isActive = false;
+    await product.save();
+
+    res.json({ success: true, message: "Product disabled" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

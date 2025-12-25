@@ -7,6 +7,8 @@ import TrendingMenu from "../sections/TrendingMenu";
 
 import Analytics from "./Analytics";
 import AdminProducts from "./AdminProducts";
+import Orders from "./Orders";
+import Customers from "./Customers";
 
 export default function Dashboard() {
   const [page, setPage] = useState("dashboard");
@@ -35,10 +37,10 @@ export default function Dashboard() {
         return <AdminProducts/>
 
       case "orders":
-        return <h1 className="text-2xl font-bold">Orders Section</h1>;
+        return <Orders/>;
 
       case "customers":
-        return <h1 className="text-2xl font-bold">Customers Section</h1>;
+        return <Customers/>;
 
       default:
         return null;

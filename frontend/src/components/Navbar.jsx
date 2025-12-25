@@ -1,6 +1,12 @@
 import { useEffect, useState, useContext } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, ChevronDown, Clock } from "lucide-react";
+import {
+  ShoppingCart,
+  User,
+  ChevronDown,
+  Clock,
+  Menu,
+} from "lucide-react";
 import axios from "axios";
 
 import { useCart } from "../context/CartContext";
@@ -22,21 +28,21 @@ const Navbar = () => {
   });
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // 🔍 Search states
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
 
-  // 🔹 Backend products
+  // Products
   const [products, setProducts] = useState([]);
 
-  // Fetch products from backend
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_BACKEND_URL}/api/products`)
       .then((res) => setProducts(res.data.products))
-      .catch((err) => console.error("Error fetching products:", err));
+      .catch((err) => console.error(err));
   }, []);
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -66,7 +72,7 @@ const Navbar = () => {
           name: p.name,
           type: "Product",
           image: p.image,
-          link: `/product/${p._id}`, // Use backend _id
+          link: `/product/${p._id}`,
         }));
 
       const categoryResults = allCategories
@@ -80,12 +86,12 @@ const Navbar = () => {
 
       setResults([...productResults, ...categoryResults]);
       setShowSearch(true);
-    }, 300); // debounce
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, products]);
 
-  // Close search on ESC
+  // ESC closes search
   useEffect(() => {
     const handler = (e) => e.key === "Escape" && setShowSearch(false);
     window.addEventListener("keydown", handler);
@@ -93,9 +99,10 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className="flex justify-between items-center bg-white shadow-md px-6 py-3 sticky top-0 z-50">
-      {/* Logo + Delivery Info */}
-      <div className="flex items-center gap-3">
+    <nav className="bg-white shadow-md sticky top-0 z-50">
+      {/* TOP BAR */}
+      <div className="flex justify-between items-center px-4 py-3">
+        {/* Logo */}
         <Link
           to={isAdmin ? "/admin" : "/"}
           className="text-2xl font-bold text-green-600"
@@ -103,111 +110,148 @@ const Navbar = () => {
           Blinkit
         </Link>
 
-        <div className="flex flex-col bg-green-100 text-green-700 text-sm font-semibold px-3 py-2 rounded-md">
-          <div className="flex items-center gap-1">
-            <Clock className="w-4 h-4" />
-            <span>
-              Delivery in <span className="font-bold">10 mins</span>
+        {/* Desktop Delivery Info */}
+        <div className="hidden lg:flex items-center gap-3">
+          <div className="flex flex-col bg-green-100 text-green-700 text-sm font-semibold px-3 py-2 rounded-md max-w-[300px]">
+            <div className="flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              <span>
+                Delivery in <b>10 mins</b>
+              </span>
+            </div>
+            <span className="text-xs truncate">
+              {selectedAddress.address}
             </span>
           </div>
-          <span className="text-xs mt-1 truncate max-w-[280px]">
-            {selectedAddress.address}
-          </span>
+
+          <LocationDropdown
+            selectedAddress={selectedAddress}
+            setSelectedAddress={setSelectedAddress}
+          />
         </div>
 
-        <LocationDropdown
-          selectedAddress={selectedAddress}
-          setSelectedAddress={setSelectedAddress}
-        />
+        {/* Right Section */}
+        <div className="flex items-center gap-4">
+          {!isAdmin && (
+            <Link to="/cart" className="relative">
+              <ShoppingCart className="w-6 h-6" />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full px-1.5">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+          )}
+
+          {/* Desktop User */}
+          <div className="hidden md:block relative">
+            {!user ? (
+              <Link
+                to="/login"
+                className="flex items-center gap-1 text-gray-700"
+              >
+                <User className="w-5 h-5" /> Login
+              </Link>
+            ) : (
+              <>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2"
+                >
+                  <img
+                    src={`https://api.dicebear.com/9.x/initials/svg?seed=${user.name}`}
+                    className="w-8 h-8 rounded-full border"
+                  />
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-lg">
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 hover:bg-gray-100"
+                    >
+                      My Profile
+                    </Link>
+                    <Link
+                      to="/myorders"
+                      className="block px-4 py-2 hover:bg-gray-100"
+                    >
+                      My Orders
+                    </Link>
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <Menu />
+          </button>
+        </div>
       </div>
 
-      {/* 🔍 Search Bar */}
-      <div className="relative w-1/2">
-        <div className="flex items-center bg-gray-100 rounded-lg px-4 py-2">
+      {/* SEARCH BAR */}
+      <div className="px-4 pb-3">
+        <div className="relative md:w-2/3 lg:w-1/2 mx-auto">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => query && setShowSearch(true)}
             placeholder="Search for fruits, snacks, and more..."
-            className="bg-transparent outline-none w-full text-sm"
+            className="w-full bg-gray-100 rounded-lg px-4 py-2 text-sm outline-none"
           />
-        </div>
 
-        {showSearch && (
-          <SearchDropdown
-            results={results}
-            onClose={() => {
-              setShowSearch(false);
-              setQuery("");
-            }}
-          />
-        )}
+          {showSearch && (
+            <SearchDropdown
+              results={results}
+              onClose={() => {
+                setShowSearch(false);
+                setQuery("");
+              }}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Right Section */}
-      <div className="flex gap-4 items-center">
-        {!isAdmin && (
-          <Link to="/cart" className="relative">
-            <ShoppingCart className="w-6 h-6 text-gray-700" />
-            {totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full px-1.5">
-                {totalItems}
-              </span>
-            )}
-          </Link>
-        )}
+      {/* MOBILE MENU */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t px-4 py-4 space-y-3 bg-white">
+          <LocationDropdown
+            selectedAddress={selectedAddress}
+            setSelectedAddress={setSelectedAddress}
+          />
 
-        {!user ? (
-          <Link
-            to="/login"
-            className="flex items-center gap-1 text-gray-700 hover:text-green-600"
-          >
-            <User className="w-5 h-5" /> Login
-          </Link>
-        ) : (
-          <div className="relative">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 text-gray-700 hover:text-green-600"
-            >
-              <img
-                src={`https://api.dicebear.com/9.x/initials/svg?seed=${user.name}`}
-                alt="profile"
-                className="w-8 h-8 rounded-full border"
-              />
-              <ChevronDown className="w-4 h-4" />
-            </button>
-
-            <div
-              className={`absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-lg transition ${
-                dropdownOpen
-                  ? "opacity-100 scale-100"
-                  : "opacity-0 scale-95 pointer-events-none"
-              }`}
-            >
-              <Link
-                to="/profile"
-                className="block px-4 py-2 text-sm hover:bg-gray-100"
-              >
+          {!user ? (
+            <Link to="/login" className="block">
+              Login
+            </Link>
+          ) : (
+            <>
+              <Link to="/profile" className="block">
                 My Profile
               </Link>
-              <Link
-                to="/myorders"
-                className="block px-4 py-2 text-sm hover:bg-gray-100"
-              >
+              <Link to="/myorders" className="block">
                 My Orders
               </Link>
-              <button
-                onClick={logout}
-                className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100"
-              >
+              <button onClick={logout} className="text-red-500">
                 Logout
               </button>
-            </div>
-          </div>
-        )}
-      </div>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   );
 };

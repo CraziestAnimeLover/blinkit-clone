@@ -3,7 +3,10 @@ import { useCart } from "../context/CartContext";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
 import axios from "axios";
-import AllCategoriesPage from "./AllCategoriesPage";
+import AllCategoriesPage from "./Categories/AllCategoriesPage";
+import CategoriesSection from "./Categories/CategoriesSection";
+import CategoryPage from "./Categories/CategoryPage";
+
 // Use your categories array
 const allCategories = [
   {
@@ -439,7 +442,8 @@ const Home = () => {
           <p>No products found.</p>
         )}
       </div>
-          
+          <CategoriesSection/>
+          <CategoryPage/>
       <Footer />
     </div>
   );

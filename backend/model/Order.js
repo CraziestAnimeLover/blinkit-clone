@@ -14,7 +14,7 @@ const orderSchema = new mongoose.Schema(
     ],
     totalAmount: { type: Number, required: true },
     address: { type: String, required: true },
-    paymentMethod: { type: String, enum: ["COD", "ONLINE"], default: "COD" },
+    paymentMethod: { type: String, enum: ["COD", "ONLINE"],  },
    paymentStatus: { type: String, enum: ["PENDING", "PAID"], default: "PENDING" },
 orderStatus: { type: String, enum: ["PLACED", "DELIVERED", "CANCELLED"], default: "PLACED" },
   },

@@ -1,113 +1,139 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "./Sidebar";
 import DashView from "./DashView";
 
 const AdminDashboard = () => {
+  const [activePage, setActivePage] = useState("dashboard");
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({ name: "", price: "", category: "", stock: "", image: null });
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    category: "",
+    stock: "",
+    image: null,
+  });
 
   const token = localStorage.getItem("token");
 
+  /* ================= FETCH ================= */
+  const fetchProducts = async () => {
+    const res = await axios.get(
+      `${import.meta.env.VITE_BACKEND_URL}/api/products`
+    );
+    setProducts(res.data.products);
+  };
+
+  const fetchUsers = async () => {
+    const res = await axios.get(
+      `${import.meta.env.VITE_BACKEND_URL}/api/auth/users`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setUsers(res.data.users);
+  };
+
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/products`).then(res => setProducts(res.data.products));
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/users`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(res => setUsers(res.data.users));
+    fetchProducts();
+    fetchUsers();
   }, []);
 
+  /* ================= FORM ================= */
   const handleChange = (e) => {
-    if (e.target.name === "image") setForm({ ...form, image: e.target.files[0] });
-    else setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === "image") {
+      setForm({ ...form, image: e.target.files[0] });
+    } else {
+      setForm({ ...form, [e.target.name]: e.target.value });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const formData = new FormData();
-      Object.entries(form).forEach(([k, v]) => formData.append(k, v));
+    const formData = new FormData();
+    Object.entries(form).forEach(([k, v]) => formData.append(k, v));
 
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/products`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert("✅ Product added");
-      // Refresh products
-      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/products`).then(res => setProducts(res.data.products));
-      // Reset form
-      setForm({ name: "", price: "", category: "", stock: "", image: null });
-    } catch (error) {
-      alert("❌ Failed to add product: " + (error.response?.data?.message || error.message));
-    }
+    await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/products`,
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    fetchProducts();
+    setForm({ name: "", price: "", category: "", stock: "", image: null });
   };
 
-  const handleDelete = async (id) => {
-    await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    alert("🗑 Product deleted");
-  };
-
-  const handleToggleAdmin = async (id, currentIsAdmin) => {
-    await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/auth/users/${id}`, { isAdmin: !currentIsAdmin }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    alert("User updated");
-    // Refresh users
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/users`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(res => setUsers(res.data.users));
-  };
-
+  /* ================= UI ================= */
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Admin Dashboard</h1>
+    <div className="min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <Sidebar onChangePage={setActivePage} />
 
-      <div>
-        <Sidebar/>
-        <DashView/>
-      </div>
+      {/* Main Content */}
+      <main
+        className="
+          md:ml-64           /* space for sidebar */
+          pt-16 md:pt-6      /* space for mobile top bar */
+          px-4 md:px-6
+          pb-10
+        "
+      >
+        {activePage === "dashboard" && <DashView />}
 
-      {/* Product Management */}
-      <h2 className="text-lg font-semibold mb-2">Product Management</h2>
-      <form onSubmit={handleSubmit} className="space-y-3 border p-4 rounded mb-6">
-        <input name="name" placeholder="Name" onChange={handleChange} className="border p-2 w-full" />
-        <input name="price" placeholder="Price" onChange={handleChange} className="border p-2 w-full" />
-        <input name="category" placeholder="Category" onChange={handleChange} className="border p-2 w-full" />
-        <input name="stock" placeholder="Stock" onChange={handleChange} className="border p-2 w-full" />
-        <input type="file" name="image" onChange={handleChange} className="border p-2 w-full" />
-        <button className="bg-green-600 text-white px-4 py-2 rounded">Add Product</button>
-      </form>
+        {activePage === "products" && (
+          <>
+            <h1 className="text-2xl font-bold mb-4">Product Management</h1>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {products.map((p) => (
-          <div key={p._id} className="border p-3 rounded">
-            <img src={p.image} alt={p.name} className="w-full h-40 object-cover" />
-            <h2 className="font-semibold">{p.name}</h2>
-            <p>₹{p.price}</p>
-            <button onClick={() => handleDelete(p._id)} className="text-red-600 mt-2">Delete</button>
-          </div>
-        ))}
-      </div>
-
-      {/* User Management */}
-      <h2 className="text-lg font-semibold mb-2">User Management</h2>
-      <div className="border p-4 rounded">
-        {users.map((u) => (
-          <div key={u._id} className="flex justify-between items-center border-b py-2">
-            <div>
-              <p className="font-semibold">{u.name}</p>
-              <p className="text-sm text-gray-600">{u.email}</p>
-            </div>
-            <button
-              onClick={() => handleToggleAdmin(u._id, u.isAdmin)}
-              className={`px-3 py-1 rounded ${u.isAdmin ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}
+            <form
+              onSubmit={handleSubmit}
+              className="grid md:grid-cols-2 gap-3 bg-white p-4 rounded shadow mb-6"
             >
-              {u.isAdmin ? 'Remove Admin' : 'Make Admin'}
-            </button>
-          </div>
-        ))}
-      </div>
+              <input name="name" placeholder="Name" onChange={handleChange} className="border p-2 rounded" />
+              <input name="price" placeholder="Price" onChange={handleChange} className="border p-2 rounded" />
+              <input name="category" placeholder="Category" onChange={handleChange} className="border p-2 rounded" />
+              <input name="stock" placeholder="Stock" onChange={handleChange} className="border p-2 rounded" />
+              <input type="file" name="image" onChange={handleChange} className="border p-2 rounded col-span-full" />
+              <button className="bg-green-600 text-white py-2 rounded col-span-full">
+                Add Product
+              </button>
+            </form>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {products.map((p) => (
+                <div key={p._id} className="bg-white rounded shadow">
+                  <img src={p.image} alt={p.name} className="h-40 w-full object-cover" />
+                  <div className="p-3">
+                    <h2 className="font-semibold">{p.name}</h2>
+                    <p className="text-gray-600">₹{p.price}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activePage === "customers" && (
+          <>
+            <h1 className="text-2xl font-bold mb-4">User Management</h1>
+            <div className="bg-white rounded shadow">
+              {users.map((u) => (
+                <div key={u._id} className="flex justify-between items-center p-3 border-b">
+                  <div>
+                    <p className="font-medium">{u.name}</p>
+                    <p className="text-sm text-gray-500">{u.email}</p>
+                  </div>
+                  <button
+                    className={`px-3 py-1 rounded text-white ${
+                      u.isAdmin ? "bg-red-500" : "bg-green-500"
+                    }`}
+                  >
+                    {u.isAdmin ? "Remove Admin" : "Make Admin"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </main>
     </div>
   );
 };

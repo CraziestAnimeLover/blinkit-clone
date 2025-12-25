@@ -8,21 +8,21 @@ import {
   getProducts,
   getProductById,
   updateProduct,
-  deleteProduct
+  deleteProduct,
 } from "../controllers/productController.js";
 
 const router = express.Router();
 
-// PUBLIC ROUTES
+// PUBLIC
 router.get("/", getProducts);
 router.get("/:id", getProductById);
 
-// ADMIN ONLY ROUTES
+// ADMIN
 router.post(
   "/",
-  authMiddleware,      // <- verify token
-  adminAuth,           // <- check admin role
-  upload.single("image"),
+  authMiddleware,
+  adminAuth,
+  upload.array("images", 5),
   createProduct
 );
 
@@ -30,7 +30,7 @@ router.put(
   "/:id",
   authMiddleware,
   adminAuth,
-  upload.single("image"),
+  upload.array("images", 5),
   updateProduct
 );
 

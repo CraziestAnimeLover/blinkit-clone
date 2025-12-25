@@ -1,14 +1,68 @@
-import multer from "multer";
-import path from "path";
+import mongoose from "mongoose";
 
-const storage = multer.memoryStorage();
+const UserSchema = new mongoose.Schema(
+  {
+    name: { type: String, trim: true, required: true },
 
-const allowed = [".jpg", ".jpeg", ".png", ".webp", ".gif",".jfif"];
+    email: { type: String, required: true, unique: true, lowercase: true },
 
-const fileFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname).toLowerCase();
-  if (allowed.includes(ext)) cb(null, true);
-  else cb(new Error("Only images are allowed"), false);
-};
+    phone: { type: String, unique: true, sparse: true },
+    isPhoneVerified: { type: Boolean, default: false },
 
-export default multer({ storage, fileFilter });
+    password: {
+      type: String,
+      required: function () {
+        return !this.googleId;
+      },
+    },
+
+    googleId: { type: String, unique: true, sparse: true },
+
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+
+    isAdmin: { type: Boolean, default: false },
+
+    status: {
+      type: String,
+      enum: ["ACTIVE", "BLOCKED"],
+      default: "ACTIVE",
+    },
+
+    avatar: String,
+
+    addresses: [
+      {
+        label: { type: String, enum: ["Home", "Work", "Other"] },
+        addressLine: String,
+        city: String,
+        pincode: String,
+        latitude: Number,
+        longitude: Number,
+        isDefault: Boolean,
+      },
+    ],
+
+    totalOrders: { type: Number, default: 0 },
+    totalSpent: { type: Number, default: 0 },
+    lastOrderAt: Date,
+
+    preferences: {
+      categories: [String],
+      frequentProducts: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      ],
+    },
+
+    walletBalance: { type: Number, default: 0 },
+
+    resetToken: String,
+    resetTokenExpiry: Date,
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("User", UserSchema);

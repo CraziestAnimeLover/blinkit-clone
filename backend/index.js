@@ -5,12 +5,15 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import addressRoutes from "./routes/address.routes.js";
 import connectDB from "./config/db.js";
 import passport from "passport";
 import "./config/passport.js";
-
+import smsRoutes from "./routes/smsRoutes.js"
 import authRoutes from "./routes/authRoutes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import recommendationRoutes from "./routes/recommendedroutes.js";
+import verifyRoutes from "./routes/verifyRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -41,13 +44,18 @@ app.use(
 );
 
 app.use(passport.initialize());
+app.use("/uploads", express.static("uploads"));
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
-
+app.use("/api/sms", smsRoutes);
+app.use("/api/verify", verifyRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api", recommendationRoutes);
+app.use("/api/addresses", addressRoutes);
 // Health check
 app.get("/", (req, res) => {
   res.json({ success: true, message: "Backend running 🚀" });

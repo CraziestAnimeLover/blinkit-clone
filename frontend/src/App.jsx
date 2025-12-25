@@ -1,32 +1,31 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-
+import Navbar from  "./components/Navbar"
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Navbar from "./components/Navbar";
-import ProtectedRoute from "./components/ProtectedRoute";
-// import AdminDashboard from "./pages/admin/AdminDashboard";
+import Login from "./pages/Login/Login";
+import Signup from "./pages/Signup/Signup";
 import Cart from "./pages/Cart";
-
-import AllCategoriesPage from "./pages/AllCategoriesPage";
-import ProductDetails from "./pages/ProductDetails";
+import AllCategoriesPage from "./pages/Categories/AllCategoriesPage";
+import ProductDetails from "./pages/Product/ProductDetails";
+import CategoryPage from "./pages/Categories/CategoryPage";
 import Address from "./pages/Address";
-import OrderConfirmation from "./pages/OrderConfirmation";
-import Payment from "./pages/Payment";
+import OrderConfirmation from "./pages/Order/OrderConfirmation";
+import Payment from "./pages/Payment/Payment";
+import PaymentSuccess from "./pages/Payment/PaymentSuccess";
+import MyOrders from "./pages/Order/MyOrders";
+import ProfilePage from "./pages/Profile/ProfilePage";
+import LoginSuccess from "./pages/Login/LoginSuccess";
+import ForgotPassword from "./pages/Login/ForgotPassword";
+import ResetPassword from "./pages/Login/ResetPassword";
+import RecommendedProducts from "./pages/Product/RecommendedProducts";
+import ProtectedRoute from "./components/ProtectedRoute"
+
+// Admin pages
 import Orders from "./pages/admin/pages/Orders";
 import Customers from "./pages/admin/pages/Customers";
 import Analytics from "./pages/admin/pages/Analytics";
 import Dashboard from "./pages/admin/pages/Dashboard";
-import Products from "./pages/admin/pages/AdminProducts";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import MyOrders from "./pages/MyOrders";
 import AdminProducts from "./pages/admin/pages/AdminProducts";
-import ProfilePage from "./pages/ProfilePage";
-import LoginSuccess from "./pages/LoginSuccess";
-import CategoryPage from "./pages/CategoryPage";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 
 
 // ✅ This component can safely use useLocation()
@@ -72,6 +71,8 @@ function Layout() {
           <Route path="/category/:categoryTitle" element={<CategoryPage />} />
           
                     <Route path="/orders" element={<Orders />} />
+                    <Route path="/recommended" element={<RecommendedProducts />} />
+
                     <Route path="/customers" element={<Customers />} />
                     <Route path="/products" element={<AdminProducts
                      />} />

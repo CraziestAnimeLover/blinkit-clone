@@ -2,18 +2,12 @@ import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      trim: true,
-      required: true,
-    },
+    name: { type: String, trim: true, required: true },
 
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-    },
+    email: { type: String, required: true, unique: true, lowercase: true },
+
+    phone: { type: String, unique: true, sparse: true },
+    isPhoneVerified: { type: Boolean, default: false },
 
     password: {
       type: String,
@@ -22,43 +16,53 @@ const UserSchema = new mongoose.Schema(
       },
     },
 
-    googleId: {
-      type: String,
-      unique: true,
-      sparse: true,
-    },
+    googleId: { type: String, unique: true, sparse: true },
 
     role: {
       type: String,
-      default: "user",
       enum: ["user", "admin"],
+      default: "user",
     },
 
-    address: {
+    isAdmin: { type: Boolean, default: false },
+
+    status: {
       type: String,
-      trim: true,
+      enum: ["ACTIVE", "BLOCKED"],
+      default: "ACTIVE",
     },
 
-    isAdmin: {
-      type: Boolean,
-      default: false,
+    avatar: String,
+
+    addresses: [
+      {
+        label: { type: String, enum: ["Home", "Work", "Other"] },
+        addressLine: String,
+        city: String,
+        pincode: String,
+        latitude: Number,
+        longitude: Number,
+        isDefault: Boolean,
+      },
+    ],
+
+    totalOrders: { type: Number, default: 0 },
+    totalSpent: { type: Number, default: 0 },
+    lastOrderAt: Date,
+
+    preferences: {
+      categories: [String],
+      frequentProducts: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      ],
     },
 
-    avatar: {
-      type: String,
-    },
+    walletBalance: { type: Number, default: 0 },
 
-    // 🔑 PASSWORD RESET FIELDS (CRITICAL)
-    resetToken: {
-      type: String,
-    },
-
-    resetTokenExpiry: {
-      type: Date,
-    },
+    resetToken: String,
+    resetTokenExpiry: Date,
   },
   { timestamps: true }
 );
 
-const User = mongoose.model("User", UserSchema);
-export default User;
+export default mongoose.model("User", UserSchema);

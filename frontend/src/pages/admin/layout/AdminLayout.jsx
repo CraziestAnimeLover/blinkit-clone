@@ -10,12 +10,20 @@ export default function AdminLayout() {
   const [activePage, setActivePage] = useState("dashboard");
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
+    <div className="min-h-screen bg-gray-100">
       {/* Sidebar */}
       <Sidebar onChangePage={setActivePage} />
 
-      {/* Dynamic Page Area */}
-      <main className="flex-1 p-10">
+      {/* Main Content */}
+      <main
+        className="
+          md:ml-64        /* space for sidebar on desktop */
+          pt-16 md:pt-6   /* space for mobile top bar */
+          px-4 sm:px-6 md:px-8 lg:px-10
+          pb-10
+          transition-all
+        "
+      >
         {activePage === "dashboard" && <Dashboard />}
         {activePage === "analytics" && <Analytics />}
         {activePage === "products" && <Products />}
