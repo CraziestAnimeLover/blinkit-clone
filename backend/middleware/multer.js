@@ -1,68 +1,45 @@
+// backend/middleware/multer.js
+import multer from "mult
+er";
+import path from "path";
 import mongoose from "mongoose";
+import UserSchema from "../model/User.model.js"; // just import the schema
 
-const UserSchema = new mongoose.Schema(
-  {
-    name: { type: String, trim: true, required: true },
+// Prevent OverwriteModelError
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
-    email: { type: String, required: true, unique: true, lowercase: true },
+// ✅ Storage configuration for Multer (in memory)
+const storage = multer.memoryStorage();
 
-    phone: { type: String, unique: true, sparse: true },
-    isPhoneVerified: { type: Boolean, default: false },
+// ✅ File filter (optional: only images)
+const fileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ext === ".jpg" || ext === ".jpeg" || ext === ".png") {
+    cb(null, true);
+  } else {
+    cb(new Error("Only images are allowed!"), false);
+  }
+};
 
-    password: {
-      type: String,
-      required: function () {
-        return !this.googleId;
-      },
-    },
-
-    googleId: { type: String, unique: true, sparse: true },
-
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-      default: "user",
-    },
-
-    isAdmin: { type: Boolean, default: false },
-
-    status: {
-      type: String,
-      enum: ["ACTIVE", "BLOCKED"],
-      default: "ACTIVE",
-    },
-
-    avatar: String,
-
-    addresses: [
-      {
-        label: { type: String, enum: ["Home", "Work", "Other"] },
-        addressLine: String,
-        city: String,
-        pincode: String,
-        latitude: Number,
-        longitude: Number,
-        isDefault: Boolean,
-      },
-    ],
-
-    totalOrders: { type: Number, default: 0 },
-    totalSpent: { type: Number, default: 0 },
-    lastOrderAt: Date,
-
-    preferences: {
-      categories: [String],
-      frequentProducts: [
-        { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-      ],
-    },
-
-    walletBalance: { type: Number, default: 0 },
-
-    resetToken: String,
-    resetTokenExpiry: Date,
+// ✅ Multer upload instance
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5 MB max
   },
-  { timestamps: true }
-);
+});
 
-export default mongoose.model("User", UserSchema);
+export default upload;
+
+// Example usage in a route
+// import upload from "../middleware/multer.js";
+// router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
+//   try {
+//     if (!req.file) return res.status(400).send("No file uploaded");
+//     // You can upload req.file.buffer to Cloudinary or local storage here
+//     res.status(200).json({ message: "File uploaded successfully" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
