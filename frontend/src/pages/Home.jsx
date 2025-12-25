@@ -442,8 +442,8 @@ const Home = () => {
           <p>No products found.</p>
         )}
       </div>
-          <CategoriesSection/>
-          <CategoryPage/>
+          {/* <CategoriesSection/> */}
+          {/* <CategoryPage/> */}
       <Footer />
     </div>
   );
