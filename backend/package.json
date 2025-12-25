@@ -30,7 +30,9 @@
     "path-to-regexp": "^8.3.0",
     "raw-body": "^3.0.2",
     "razorpay": "^2.9.6",
-    "twilio": "^5.11.1"
+    "twilio": "^5.11.1",
+    "mime-types": "2.1.35"
+
   },
   "devDependencies": {
     "express": "^5.2.1",
