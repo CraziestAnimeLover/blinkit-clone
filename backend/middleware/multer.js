@@ -1,6 +1,5 @@
 // backend/middleware/multer.js
-import multer from "mult
-er";
+import multer from "multer";
 import path from "path";
 import mongoose from "mongoose";
 import UserSchema from "../model/User.model.js"; // just import the schema
