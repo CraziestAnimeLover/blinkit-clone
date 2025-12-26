@@ -102,7 +102,7 @@ const handleGoogleSignup = () => {
         onClick={handleGoogleSignup}
       >
         <img
-          src="/google.png" // or a direct Google logo URL
+          src="Public/google.png" // or a direct Google logo URL
           alt="Google"
           className="w-7 h-7"
         />
