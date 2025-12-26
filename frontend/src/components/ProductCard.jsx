@@ -29,7 +29,10 @@ const ProductCard = ({ product }) => {
     selectedVariant.stock > 0 && selectedVariant.stock <= 5;
 
   return (
-    <div className="p-3 sm:p-4 border rounded-xl hover:shadow-md transition flex flex-col h-full relative bg-white">
+   <div className="p-3 sm:p-4 border rounded-xl transition flex flex-col h-full relative bg-white
+  shadow-[0_4px_12px_rgba(34,197,94,0.15)]
+  hover:shadow-[0_6px_18px_rgba(34,197,94,0.25)]">
+
       
       {/* 🔖 Discount Badge */}
       {hasDiscount && (

@@ -317,6 +317,29 @@ const allCategories = [
     ],
   },
 ]; // paste your full category array here
+const banners = [
+  {
+    title: "Paan corner",
+    subtitle: "Your favourite paan shop is now online",
+    cta: "Shop Now",
+    bg: "from-green-500 to-green-700",
+    image: "/banners/paan_corner.png",
+  },
+  {
+    title: "Pharmacy at your doorstep",
+    subtitle: "Cough syrups, pain relief & more",
+    cta: "Order Now",
+    bg: "from-teal-400 to-teal-600",
+    image: "/banners/masthead_web_pharma.jpg",
+  },
+  {
+    title: "Pet Care supplies in minutes",
+    subtitle: "Food, treats & toys",
+    cta: "Order Now",
+    bg: "from-yellow-400 to-orange-400",
+    image: "/banners/masthead_web_pet_care.jpg",
+  },
+];
 
 const Home = () => {
   const { addToCart } = useCart();
@@ -326,6 +349,13 @@ const Home = () => {
 
   const carouselRef = useRef(null);
 
+  const [currentBanner, setCurrentBanner] = useState(0);
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentBanner((prev) => (prev + 1) % banners.length);
+  }, 4000);
+  return () => clearInterval(interval);
+}, []);
   // Fetch products
   const loadProducts = async () => {
     try {
@@ -361,9 +391,37 @@ const Home = () => {
   return (
     <div className="px-6 py-4">
       {/* Hero */}
-      <div className="w-full h-48 bg-green-100 flex items-center justify-center text-3xl font-semibold text-green-700 rounded-md">
+      {/* <div className="w-full h-48 bg-green-100 flex items-center justify-center text-3xl font-semibold text-green-700 rounded-md">
         Welcome to Blinkit Clone 🛒
-      </div>
+      </div> */}
+   {/* Hero Masthead */}
+<div className="relative w-full h-60 rounded-xl overflow-hidden mb-8">
+  <div
+    className={`w-full h-full bg-gradient-to-r ${banners[currentBanner].bg} flex items-center justify-between px-10`}
+  >
+    {/* Left Content */}
+    <div className="text-white max-w-md">
+      <h1 className="text-3xl font-bold mb-2">
+        {banners[currentBanner].title}
+      </h1>
+      <p className="text-sm mb-4 opacity-90">
+        {banners[currentBanner].subtitle}
+      </p>
+      <button className="bg-white text-green-700 px-4 py-2 rounded-md font-semibold text-sm hover:bg-green-100">
+        {banners[currentBanner].cta}
+      </button>
+    </div>
+
+    {/* Right Image */}
+    <img
+      src={banners[currentBanner].image}
+      alt="banner"
+      className="h-44 object-contain"
+    />
+  </div>
+</div>
+
+
 
       {/* Main Categories Carousel */}
       {/* <h2 className="text-xl font-bold mt-6 mb-3">Categories</h2> */}

@@ -56,42 +56,43 @@ export default function AdminProducts() {
 
   // 🔹 Submit product
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("brand", form.brand);
-    formData.append("description", form.description);
-    formData.append("category", form.category);
-    formData.append("variants", JSON.stringify(form.variants));
+  const formData = new FormData();
+  formData.append("name", form.name);
+  formData.append("brand", form.brand);
+  formData.append("description", form.description);
+  formData.append("category", form.category);
+  formData.append("variants", JSON.stringify(form.variants));
 
-    images.forEach((img) => {
-      formData.append("images", img);
-    });
+  images.forEach((img) => {
+    formData.append("images", img);
+  });
 
-    await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/products`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+  await axios.post(
+    `${import.meta.env.VITE_BACKEND_URL}/api/products`,
+    formData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // ❌ DO NOT SET Content-Type
+      },
+    }
+  );
 
-    alert("✅ Product Added");
-    loadProducts();
+  alert("✅ Product Added");
+  loadProducts();
 
-    setForm({
-      name: "",
-      brand: "",
-      description: "",
-      category: "",
-      variants: [{ label: "", price: "", mrp: "", stock: "" }],
-    });
-    setImages([]);
-  };
+  setForm({
+    name: "",
+    brand: "",
+    description: "",
+    category: "",
+    variants: [{ label: "", price: "", mrp: "", stock: "" }],
+  });
+  setImages([]);
+};
+
 
   // 🔹 Delete product
   const handleDelete = async (id) => {
@@ -208,12 +209,14 @@ export default function AdminProducts() {
             </button>
           </div>
 
-          <input
-            type="file"
-            multiple
-            onChange={handleImages}
-            className="border p-2 w-full"
-          />
+         <input
+  type="file"
+  multiple
+  accept="image/*"
+  onChange={handleImages}
+  className="border p-2 w-full"
+/>
+
 
           <button className="bg-green-600 text-white py-2 rounded w-full">
             Add Product
