@@ -4,12 +4,16 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import path from "path";
+import http from "http";
+import { Server } from "socket.io";
 import { fileURLToPath } from "url";
-import addressRoutes from "./routes/address.routes.js";
+
 import connectDB from "./config/db.js";
 import passport from "passport";
 import "./config/passport.js";
-import smsRoutes from "./routes/smsRoutes.js"
+
+import addressRoutes from "./routes/address.routes.js";
+import smsRoutes from "./routes/smsRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import recommendationRoutes from "./routes/recommendedroutes.js";
@@ -17,6 +21,7 @@ import verifyRoutes from "./routes/verifyRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import deliveryRoutes from "./routes/deliveryRoutes.js";
 
 const app = express();
 
@@ -28,15 +33,12 @@ const __dirname = path.dirname(__filename);
 connectDB();
 const PORT = process.env.PORT || 8000;
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 // Middleware
 app.use(express.json());
 app.use(
   cors({
     origin: [
       process.env.FRONTEND_URL,
-      // "http://localhost:5173",
       "https://blinkit-clone-frontend-one.vercel.app",
     ],
     credentials: true,
@@ -56,10 +58,49 @@ app.use("/api/verify", verifyRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api", recommendationRoutes);
 app.use("/api/addresses", addressRoutes);
+app.use("/api/delivery", deliveryRoutes);
+
 // Health check
 app.get("/", (req, res) => {
   res.json({ success: true, message: "Backend running 🚀" });
 });
 
-// ✅ VERY IMPORTANT
+/* =======================
+   SOCKET.IO SETUP
+======================= */
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: [
+      process.env.FRONTEND_URL,
+      "https://blinkit-clone-frontend-one.vercel.app",
+    ],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("Socket connected:", socket.id);
+
+  socket.on("joinOrder", (orderId) => {
+    socket.join(orderId);
+  });
+
+  socket.on("sendLocation", ({ orderId, lat, lng }) => {
+    if (!orderId || lat == null || lng == null) return;
+    io.to(orderId).emit("locationUpdate", { lat, lng });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id);
+  });
+});
+
+// Start server
+server.listen(PORT, () =>
+  console.log(`Server + Socket running on port ${PORT}`)
+);
+
+// Export app (still useful for testing)
 export default app;

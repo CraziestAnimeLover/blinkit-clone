@@ -1,9 +1,73 @@
-import React, { useEffect, useState, useContext } from "react";
-import { useCart } from "../context/CartContext";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useContext, useRef } from "react";
+import { MapContainer, TileLayer, useMapEvents, useMap } from "react-leaflet";
+import L from "leaflet";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
+import SmoothMarker from "./SmoothMarker";
+import "leaflet/dist/leaflet.css"; // Leaflet CSS
 
+/* ================= LEAFLET ICON FIX ================= */
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+/* ================= REVERSE GEOCODE ================= */
+const reverseGeocode = async (lat, lng) => {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+    {
+      headers: {
+        "User-Agent": "blinkit-clone/1.0 (your-email@gmail.com)",
+      },
+    }
+  );
+  return res.json();
+};
+
+/* ================= MAP CLICK HANDLER ================= */
+const MapClickHandler = ({ setNewAddress }) => {
+  useMapEvents({
+    click: async (e) => {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+
+      const data = await reverseGeocode(lat, lng);
+      const address = data?.address || {};
+
+      setNewAddress((prev) => ({
+        ...prev,
+        lat,
+        lng,
+        line1: address.road || "",
+        city: address.city || address.town || address.village || "",
+        state: address.state || "",
+        zip: address.postcode || "",
+      }));
+    },
+  });
+  return null;
+};
+
+/* ================= RECENTER MAP ================= */
+const RecenterMap = ({ lat, lng }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (lat && lng) {
+      map.flyTo([lat, lng], 16, { duration: 1 });
+    }
+  }, [lat, lng]);
+  return null;
+};
+
+/* ================= MAIN COMPONENT ================= */
 const Address = () => {
   const { cart, total } = useCart();
   const { user } = useContext(AuthContext);
@@ -13,33 +77,46 @@ const Address = () => {
   const DELIVERY_CHARGE = 25;
   const HANDLING_CHARGE = 2;
   const SMALL_CART_CHARGE = 20;
-  const grandTotal = total + DELIVERY_CHARGE + HANDLING_CHARGE + SMALL_CART_CHARGE;
+  const grandTotal =
+  parseFloat(total || 0) +
+  parseFloat(DELIVERY_CHARGE) +
+  parseFloat(HANDLING_CHARGE) +
+  parseFloat(SMALL_CART_CHARGE);
+
+
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState("");
-  const [newAddress, setNewAddress] = useState({ name: "", line1: "", city: "", state: "", zip: "" });
   const [loading, setLoading] = useState(true);
 
-  // Format address object to string
-  const formatAddress = (addr) => {
-    if (!addr) return "";
-    if (typeof addr === "string") return addr;
-    return `${addr.line1 || ""}, ${addr.city || ""}, ${addr.state || ""} - ${addr.zip || ""}`.trim();
-  };
+  const [newAddress, setNewAddress] = useState({
+    name: "",
+    line1: "",
+    city: "",
+    state: "",
+    zip: "",
+    lat: null,
+    lng: null,
+    label: "Home",
+    instructions: "",
+    isDefault: false,
+  });
 
-  // Fetch saved addresses
+  const mapRef = useRef(null);
+
+  /* ================= FETCH ADDRESSES ================= */
   useEffect(() => {
     if (!user) return;
 
     const fetchAddresses = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/addresses`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const safeAddresses = res.data.addresses?.filter(addr => addr) || [];
-        setAddresses(safeAddresses);
-        if (safeAddresses.length) setSelectedAddress(safeAddresses[0]._id);
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/addresses`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setAddresses(res.data.addresses || []);
+        if (res.data.addresses?.length)
+          setSelectedAddress(res.data.addresses[0]._id);
       } catch (err) {
         console.error(err);
       } finally {
@@ -50,169 +127,220 @@ const Address = () => {
     fetchAddresses();
   }, [user]);
 
-  const handlePlaceOrder = async () => {
-  if (!selectedAddress && !newAddress.line1) {
-    alert("Please select or enter an address");
-    return;
-  }
+  /* ================= CURRENT LOCATION ================= */
+  const detectLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
 
+        const data = await reverseGeocode(lat, lng);
+        const address = data?.address || {};
+
+        setNewAddress((prev) => ({
+          ...prev,
+          lat,
+          lng,
+          line1: address.house_number
+            ? `${address.house_number}, ${address.road}`
+            : address.road || "",
+          city: address.city || address.town || address.village || "",
+          state: address.state || "",
+          zip: address.postcode || "",
+        }));
+      },
+      () => alert("Location permission denied")
+    );
+  };
+
+  /* ================= PLACE ORDER ================= */
+const handlePlaceOrder = async () => {
   let addressToUse;
 
   if (selectedAddress) {
-    addressToUse = addresses.find(a => a && a._id === selectedAddress);
-    if (!addressToUse) {
-      alert("Selected address is invalid");
-      return;
-    }
+    addressToUse = addresses.find(a => a._id === selectedAddress);
   } else {
-    addressToUse = newAddress;
-
-    // Save new address first
-    try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/addresses`,
-        addressToUse,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!res.data.address || !res.data.address._id) {
-        alert("Failed to save new address");
-        return;
-      }
-
-      addressToUse = res.data.address;
-      setAddresses(prev => [...prev, addressToUse]);
-      setSelectedAddress(addressToUse._id);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save address");
-      return;
-    }
+    const res = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/addresses`,
+      newAddress,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    addressToUse = res.data.address;
   }
 
-  // Format address for backend
-  const formattedAddress = `${addressToUse.line1 || ""}, ${addressToUse.city || ""}, ${addressToUse.state || ""} - ${addressToUse.zip || ""}`;
+  // ✅ Convert address object to string to match schema
+  const formattedAddress = `${addressToUse.line1}, ${addressToUse.city}, ${addressToUse.state} - ${addressToUse.zip}`;
 
-  // Place order
+  const payload = {
+    userId: user._id,
+    items: cart.map(i => ({
+      productId: i._id,
+      name: i.name,
+      price: Number(i.price), // ensure number
+      quantity: Number(i.quantity), // ensure number
+    })),
+    totalAmount: Number(grandTotal), // ensure number
+    address: formattedAddress, // 👈 string now
+    paymentMethod: "COD",
+  };
+
+  console.log("Order payload:", payload); // ✅ sanity check
+
   try {
-    const response = await axios.post(
+    const res = await axios.post(
       `${import.meta.env.VITE_BACKEND_URL}/api/orders`,
-      {
-        items: cart.map(i => ({ product: i._id, quantity: i.quantity, price: i.price })),
-        address: formattedAddress,
-        totalAmount: total + DELIVERY_CHARGE + HANDLING_CHARGE + SMALL_CART_CHARGE,
-        paymentMethod: "COD",
-      },
+      payload,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    navigate(`/payment/${response.data.order._id}`);
+    console.log("Order created:", res.data.order);
+    navigate(`/payment/${res.data.order._id}`);
   } catch (err) {
-    console.error(err);
-    alert("Failed to place order");
+    console.error("Order error:", err.response?.data || err.message);
   }
 };
-  if (!user || loading) return <p>Loading...</p>;
+
+
+  /* ================= FIX MAP SIZE ================= */
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current.invalidateSize();
+      }, 400);
+    }
+  }, [newAddress.lat, newAddress.lng]);
+
+  if (!user || loading) return <p className="p-6">Loading...</p>;
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold mb-6">Delivery Address</h1>
+      <h1 className="text-3xl font-bold">Delivery Address</h1>
 
-      {/* Saved Addresses */}
-      {addresses.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">Saved Addresses</h2>
-          {addresses.map((addr, idx) => (
-            addr && (
-              <div key={addr._id || idx} className="border p-4 rounded mb-2 flex items-center">
-                <input
-                  type="radio"
-                  name="address"
-                  value={addr._id}
-                  checked={selectedAddress === addr._id}
-                  onChange={() => setSelectedAddress(addr._id)}
-                  className="mr-2"
-                />
-                <div>
-                  <p className="font-semibold">{addr.name}</p>
-                  <p>{addr.line1}, {addr.city}, {addr.state} - {addr.zip}</p>
-                </div>
-              </div>
-            )
+      {/* SAVED ADDRESSES */}
+      {addresses.map((addr) => (
+        <label
+          key={addr._id}
+          className="border p-4 rounded flex gap-3 cursor-pointer"
+        >
+          <input
+            type="radio"
+            checked={selectedAddress === addr._id}
+            onChange={() => setSelectedAddress(addr._id)}
+          />
+          <div>
+            <p className="font-semibold">{addr.name}</p>
+            <p className="text-sm text-gray-600">
+              {addr.line1}, {addr.city}, {addr.state}
+            </p>
+          </div>
+        </label>
+      ))}
+
+      {/* ADD NEW ADDRESS */}
+      <div className="border rounded p-4 bg-gray-50 space-y-3">
+        <h2 className="font-semibold text-lg">Add New Address</h2>
+
+        <button
+          onClick={detectLocation}
+          className="text-green-600 font-semibold"
+        >
+          📍 Use current location
+        </button>
+
+        <div className="w-full h-[240px] rounded overflow-hidden">
+          <MapContainer
+            ref={mapRef}
+            center={
+              newAddress.lat && newAddress.lng
+                ? [newAddress.lat, newAddress.lng]
+                : [28.6139, 77.209]
+            }
+            zoom={15}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <MapClickHandler setNewAddress={setNewAddress} />
+            <RecenterMap lat={newAddress.lat} lng={newAddress.lng} />
+
+            {newAddress.lat && newAddress.lng && (
+              <SmoothMarker position={{ lat: newAddress.lat, lng: newAddress.lng }} />
+            )}
+          </MapContainer>
+        </div>
+
+        <input
+          placeholder="Flat / House No"
+          className="input"
+          onChange={(e) =>
+            setNewAddress({ ...newAddress, line1: e.target.value })
+          }
+        />
+        <input
+          placeholder="City"
+          className="input"
+          onChange={(e) =>
+            setNewAddress({ ...newAddress, city: e.target.value })
+          }
+        />
+        <input
+          placeholder="State"
+          className="input"
+          onChange={(e) =>
+            setNewAddress({ ...newAddress, state: e.target.value })
+          }
+        />
+        <input
+          placeholder="ZIP"
+          className="input"
+          onChange={(e) =>
+            setNewAddress({ ...newAddress, zip: e.target.value })
+          }
+        />
+
+        <div className="flex gap-2">
+          {["Home", "Work", "Other"].map((l) => (
+            <button
+              key={l}
+              onClick={() => setNewAddress({ ...newAddress, label: l })}
+              className={`px-3 py-1 rounded-full border ${
+                newAddress.label === l ? "bg-green-600 text-white" : ""
+              }`}
+            >
+              {l}
+            </button>
           ))}
         </div>
-      )}
 
-      {/* Add New Address */}
-      <div className="mb-6 border p-4 rounded bg-gray-50">
-        <h2 className="text-xl font-semibold mb-2">Add New Address</h2>
-        <input
-          type="text"
-          placeholder="Address Name"
-          value={newAddress.name}
-          onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
-          className="border p-2 rounded w-full mb-2"
+        <textarea
+          placeholder="Delivery instructions"
+          className="input"
+          onChange={(e) =>
+            setNewAddress({ ...newAddress, instructions: e.target.value })
+          }
         />
-        <input
-          type="text"
-          placeholder="Line 1"
-          value={newAddress.line1}
-          onChange={(e) => setNewAddress({ ...newAddress, line1: e.target.value })}
-          className="border p-2 rounded w-full mb-2"
-        />
-        <input
-          type="text"
-          placeholder="City"
-          value={newAddress.city}
-          onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-          className="border p-2 rounded w-full mb-2"
-        />
-        <input
-          type="text"
-          placeholder="State"
-          value={newAddress.state}
-          onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-          className="border p-2 rounded w-full mb-2"
-        />
-        <input
-          type="text"
-          placeholder="ZIP"
-          value={newAddress.zip}
-          onChange={(e) => setNewAddress({ ...newAddress, zip: e.target.value })}
-          className="border p-2 rounded w-full mb-2"
-        />
+
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            onChange={(e) =>
+              setNewAddress({ ...newAddress, isDefault: e.target.checked })
+            }
+          />
+          Set as default
+        </label>
       </div>
 
-      {/* Order Summary */}
-      <div className="border rounded-lg p-4 mb-6 bg-gray-50 shadow-sm">
-        <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-        <div className="flex justify-between mb-2">
-          <span>Subtotal</span>
-          <span>₹{total}</span>
-        </div>
-        <div className="flex justify-between mb-2">
-          <span>Delivery Charge</span>
-          <span>₹{DELIVERY_CHARGE}</span>
-        </div>
-        <div className="flex justify-between mb-2">
-          <span>Handling Charge</span>
-          <span>₹{HANDLING_CHARGE}</span>
-        </div>
-        <div className="flex justify-between mb-2">
-          <span>Small Cart Charge</span>
-          <span>₹{SMALL_CART_CHARGE}</span>
-        </div>
-        <hr className="my-2" />
-        <div className="flex justify-between font-bold text-lg">
+      {/* ORDER SUMMARY */}
+      <div className="border rounded p-4 bg-gray-50">
+        <div className="flex justify-between">
           <span>Total</span>
-          <span>₹{grandTotal}</span>
+          <span className="font-bold">₹{grandTotal}</span>
         </div>
       </div>
 
-      {/* Place Order */}
       <button
         onClick={handlePlaceOrder}
-        className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow"
+        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded font-semibold"
       >
         Continue to Payment
       </button>

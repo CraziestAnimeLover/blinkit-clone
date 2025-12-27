@@ -9,6 +9,7 @@ import Analytics from "./Analytics";
 import AdminProducts from "./AdminProducts";
 import Orders from "./Orders";
 import Customers from "./Customers";
+import DeliveryPartners from "./DeliveryPartners";
 
 export default function Dashboard() {
   const [page, setPage] = useState("dashboard");
@@ -41,6 +42,9 @@ export default function Dashboard() {
 
       case "customers":
         return <Customers/>;
+      
+      case "delivery-partners":
+      return <DeliveryPartners />;   
 
       default:
         return null;

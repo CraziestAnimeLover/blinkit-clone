@@ -6,23 +6,24 @@ import {
   addPaymentMethod,
   getLatestOrder,
   updateOrderStatus,
+  getDeliveryLocation, // <-- new
+  assignDeliveryBoy,updateDeliveryLocation,getAssignedOrders
 } from "../controllers/orderController.js";
 
 const router = express.Router();
 
-// Create a new order
+// Existing routes...
 router.post("/", authMiddleware, createOrder);
-
-// Get all orders of logged-in user
 router.get("/", authMiddleware, getUserOrders);
-router.get("/my-orders", authMiddleware, getUserOrders); // optional alias
-
-// Get latest order of logged-in user
+router.get("/my-orders", authMiddleware, getUserOrders);
 router.get("/latest", authMiddleware, getLatestOrder);
-// Update order status (Admin)
-router.put("/:id/status", authMiddleware, updateOrderStatus);
-
-// Add payment method to existing order
 router.post("/:id/payment", authMiddleware, addPaymentMethod);
+router.put("/:id/status", authMiddleware, updateOrderStatus);
+router.put("/assign-delivery", authMiddleware, assignDeliveryBoy);
+router.get("/assigned", authMiddleware, getAssignedOrders);
+// delivery boy
+router.put("/:id/location", authMiddleware, updateDeliveryLocation);
+// ✅ New route for delivery location
+router.get("/:id/location", authMiddleware, getDeliveryLocation);
 
 export default router;

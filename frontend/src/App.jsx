@@ -26,6 +26,7 @@ import Customers from "./pages/admin/pages/Customers";
 import Analytics from "./pages/admin/pages/Analytics";
 import Dashboard from "./pages/admin/pages/Dashboard";
 import AdminProducts from "./pages/admin/pages/AdminProducts";
+import DeliveryDashboard from "./pages/deliveryman/DeliveryDashboard/DeliveryDashboard";
 
 
 // ✅ This component can safely use useLocation()
@@ -58,6 +59,16 @@ function Layout() {
               </ProtectedRoute>
             }
           />
+  <Route
+  path="/delivery/dashboard"
+  element={
+    <ProtectedRoute deliveryOnly={true}>
+      <DeliveryDashboard />
+    </ProtectedRoute>
+  }
+/>
+
+
           <Route path="/cart" element={<Cart />} />
           <Route path="/my-orders" element={<MyOrders/>} />
           

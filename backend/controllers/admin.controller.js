@@ -76,3 +76,39 @@ export const getAllCustomers = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch customers" });
   }
 };
+
+// Approve a delivery partner
+export const approveDeliveryPartner = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user || user.role !== "delivery") {
+      return res.status(404).json({ msg: "Delivery partner not found" });
+    }
+
+    // Approve only if not already active
+    if (!user.isVerified || user.status !== "ACTIVE") {
+      user.isVerified = true;
+      user.status = "ACTIVE";
+      await user.save();
+    }
+
+    // Always return success
+    res.json({ 
+      msg: "Delivery partner approved successfully", 
+      user: { 
+        _id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        status: user.status, 
+        isVerified: user.isVerified 
+      } 
+    });
+
+  } catch (err) {
+    console.error("Approve delivery error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+

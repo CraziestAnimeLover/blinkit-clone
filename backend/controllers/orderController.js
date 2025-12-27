@@ -1,4 +1,6 @@
 import Order from "../model/Order.js";
+import User from "../model/User.model.js";
+
 import jwt from "jsonwebtoken";
 
 // Create a new order
@@ -118,6 +120,75 @@ export const updateOrderStatus = async (req, res) => {
   } catch (err) {
     console.error("Update status error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getDeliveryLocation = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).select("deliveryLocation");
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json({ deliveryLocation: order.deliveryLocation || null });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export const assignDeliveryBoy = async (req, res) => {
+  try {
+    console.log("Assign request:", req.body);
+
+    const { orderId, deliveryBoyId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ msg: "Order not found" });
+
+    const deliveryBoy = await User.findById(deliveryBoyId);
+    if (!deliveryBoy)
+      return res.status(404).json({ msg: "Delivery partner not found" });
+
+    order.deliveryBoy = deliveryBoy._id;
+    await order.save();
+
+    res.json({ msg: "Delivery partner assigned successfully", order });
+  } catch (err) {
+    console.error("Assign delivery error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+export const getAssignedOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ deliveryBoy: req.user._id }).sort({ createdAt: -1 });
+    res.status(200).json({ orders });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch assigned orders" });
+  }
+};
+
+
+
+export const updateDeliveryLocation = async (req, res) => {
+  const { id } = req.params;
+  const { lat, lng } = req.body;
+
+  try {
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // check if current user is the assigned delivery boy
+    if (order.deliveryBoy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    order.deliveryLocation = { lat, lng };
+    await order.save();
+
+    res.status(200).json({ message: "Location updated" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to update location" });
   }
 };
 

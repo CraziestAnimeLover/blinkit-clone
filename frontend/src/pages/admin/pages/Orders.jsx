@@ -1,31 +1,32 @@
 import { useEffect, useState } from "react";
+import AssignDeliveryModal from "./AssignDeliveryModal";
 import axios from "axios";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const token = localStorage.getItem("token");
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get(
+        `${BACKEND_URL}/api/admin/orders`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setOrders(res.data.orders);
+    } catch (err) {
+      console.error("Orders error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/admin/orders`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setOrders(res.data.orders);
-      } catch (err) {
-        console.error("Orders error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
   }, []);
 
@@ -47,6 +48,7 @@ export default function Orders() {
               <th className="p-3">Payment</th>
               <th className="p-3">Status</th>
               <th className="p-3">Date</th>
+              <th className="p-3">Action</th> {/* ✅ NEW */}
             </tr>
           </thead>
 
@@ -64,7 +66,9 @@ export default function Orders() {
                   </p>
                 </td>
 
-                <td className="p-3 font-semibold">₹{order.totalAmount}</td>
+                <td className="p-3 font-semibold">
+                  ₹{order.totalAmount}
+                </td>
 
                 <td className="p-3">
                   <span
@@ -95,6 +99,22 @@ export default function Orders() {
                 <td className="p-3 text-xs">
                   {new Date(order.createdAt).toLocaleDateString()}
                 </td>
+
+                {/* ✅ ASSIGN BUTTON */}
+                <td className="p-3">
+                  {order.deliveryBoy ? (
+                    <span className="text-green-600 text-xs font-medium">
+                      Assigned
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setSelectedOrder(order._id)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded text-xs"
+                    >
+                      Assign Delivery
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -106,7 +126,15 @@ export default function Orders() {
           </p>
         )}
       </div>
+
+      {/* ✅ MODAL */}
+      {selectedOrder && (
+        <AssignDeliveryModal
+          orderId={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          onAssigned={fetchOrders}
+        />
+      )}
     </div>
   );
 }
-

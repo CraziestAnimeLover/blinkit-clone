@@ -23,9 +23,14 @@ const Login = () => {
   }, [location.search]);
 
   // Redirect after normal login
-  useEffect(() => {
-    if (user) navigate(user.isAdmin ? "/admin" : "/");
-  }, [user, navigate]);
+ useEffect(() => {
+  if (user) {
+    if (user.role === "admin") navigate("/admin");
+    else if (user.role === "delivery") navigate("/delivery/dashboard");
+    else navigate("/");
+  }
+}, [user, navigate]);
+
 
   // Email/password login
   const handleSubmit = async (e) => {

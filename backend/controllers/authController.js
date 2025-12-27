@@ -17,7 +17,7 @@ export const signup = async (req, res) => {
       city,
       pincode,
       latitude,
-      longitude
+      longitude,vehicleType,
     } = req.body;
 
     // 1️⃣ Check existing user
@@ -39,7 +39,9 @@ export const signup = async (req, res) => {
       password: hashedPassword,
       role: role || "user",
       isAdmin: role === "admin",
-      status: "ACTIVE",
+      isVerified: role === "delivery" ? false : true,
+  vehicleType: role === "delivery" ? vehicleType : undefined,
+       status: role === "delivery" ? "INACTIVE" : "ACTIVE", // fix here
       addresses: addressLine
         ? [
             {
@@ -99,6 +101,11 @@ export const login = async (req, res) => {
     if (user.status === "BLOCKED") {
       return res.status(403).json({ msg: "Account blocked by admin" });
     }
+if (user.role === "delivery" && !user.isVerified) {
+  return res.status(403).json({
+    msg: "Delivery partner not approved by admin",
+  });
+}
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -262,3 +269,4 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+

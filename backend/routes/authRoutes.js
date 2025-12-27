@@ -5,7 +5,7 @@ import {
   forgotPassword,
   resetPassword,
   googleCallback,
-  updateProfile, updateAvatar
+  updateProfile, updateAvatar,
 } from "../controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import adminAuth from "../middleware/adminMiddleware.js";
@@ -77,6 +77,7 @@ router.get(
   passport.authenticate("google", { session: false, failureRedirect: "/login" }),
   googleCallback // redirects to FRONTEND_URL/login?token=...
 );
+
 
 
 

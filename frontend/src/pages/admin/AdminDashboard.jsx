@@ -78,6 +78,64 @@ const AdminDashboard = () => {
         "
       >
         {activePage === "dashboard" && <DashView />}
+{activePage === "customers" && (
+  <>
+    <h1 className="text-2xl font-bold mb-4">User & Delivery Partner Management</h1>
+    <div className="bg-white rounded shadow">
+      {users.map((u) => (
+        <div key={u._id} className="flex justify-between items-center p-3 border-b">
+          <div>
+            <p className="font-medium">{u.name}</p>
+            <p className="text-sm text-gray-500">{u.email}</p>
+            <p className="text-sm text-gray-500">
+              Role: {u.role} {u.role === "delivery" && !u.isVerified ? "(Pending Approval)" : ""}
+            </p>
+          </div>
+
+          {u.role === "delivery" && !u.isVerified ? (
+            <button
+              className="px-3 py-1 rounded bg-blue-500 text-white"
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem("token");
+                  await axios.put(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/admin/approve-delivery/${u._id}`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  alert("Delivery partner approved!");
+                  // Refetch users to update list
+                  const res = await axios.get(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/auth/users`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  setUsers(res.data.users);
+                } catch (err) {
+                  console.error(err);
+                  alert("Approval failed");
+                }
+              }}
+            >
+              Approve
+            </button>
+          ) : u.role !== "admin" ? (
+            <button
+              className="px-3 py-1 rounded bg-green-500 text-white"
+            >
+              Make Admin
+            </button>
+          ) : (
+            <button
+              className="px-3 py-1 rounded bg-red-500 text-white"
+            >
+              Remove Admin
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  </>
+)}
 
         {activePage === "products" && (
           <>

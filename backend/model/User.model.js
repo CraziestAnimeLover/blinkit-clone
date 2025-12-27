@@ -15,13 +15,13 @@ const UserSchema = new mongoose.Schema(
     googleId: { type: String, unique: true, sparse: true },
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["user", "admin", "delivery"],
       default: "user",
     },
     isAdmin: { type: Boolean, default: false },
     status: {
       type: String,
-      enum: ["ACTIVE", "BLOCKED"],
+      enum: ["ACTIVE", "BLOCKED","INACTIVE"],
       default: "ACTIVE",
     },
     avatar: String,
@@ -48,7 +48,31 @@ const UserSchema = new mongoose.Schema(
     walletBalance: { type: Number, default: 0 },
     resetToken: String,
     resetTokenExpiry: Date,
+
+    // Deliveryman
+    isVerified: {
+  type: Boolean,
+  default: false, // admin approves delivery man
+},
+
+vehicleType: {
+  type: String,
+  required: function() { return this.role === 'delivery'; }
+}
+,
+
+currentLocation: {
+  lat: Number,
+  lng: Number,
+},
+
+isOnline: {
+  type: Boolean,
+  default: false,
+},
   },
+
+  
   { timestamps: true }
 );
 

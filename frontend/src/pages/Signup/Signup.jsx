@@ -6,13 +6,15 @@ const Signup = () => {
   const { signup, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    address: "",
-    role: "user",
-  });
+ const [form, setForm] = useState({
+  name: "",
+  email: "",
+  password: "",
+  address: "",
+  role: "user",
+  vehicleType: "", // default empty
+});
+
   const [error, setError] = useState("");
 
   // Redirect after user state updates
@@ -22,21 +24,22 @@ const Signup = () => {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await signup(
-        form.name,
-        form.email,
-        form.password,
-        form.address,
-        form.role
-      );
-      // After signup, AuthContext should set user, and useEffect will redirect
-    } catch (err) {
-      setError(err.response?.data?.msg || "Signup failed");
-    }
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    await signup({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      address: form.address,
+      role: form.role,
+      vehicleType: form.vehicleType, // only filled if delivery
+    });
+  } catch (err) {
+    setError(err.response?.data?.msg || "Signup failed");
+  }
+};
+
 
 const handleGoogleSignup = () => {
   if (!backendUrl) {
@@ -84,8 +87,17 @@ const handleGoogleSignup = () => {
         >
           <option value="user">User</option>
           <option value="admin">Admin</option>
+          <option value="delivery">Delivery Partner</option>
         </select>
-
+          {/* Add vehicle type field ONLY for delivery partner */}
+{form.role === "delivery" && (
+  <input
+    className="border p-2"
+    placeholder="Vehicle Type (Bike / Cycle)"
+    value={form.vehicleType || ""}
+    onChange={(e) => setForm({ ...form, vehicleType: e.target.value })}
+  />
+)}
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         <button

@@ -1,12 +1,13 @@
 import axios from "axios";
 import { createContext, useEffect, useState } from "react";
-
+import { useNavigate } from "react-router";
+import { socket } from "../socket";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const usenavigate = useNavigate
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   /* --------------------------------------------------
@@ -23,19 +24,29 @@ export const AuthProvider = ({ children }) => {
   /* --------------------------------------------------
      SIGNUP
   -------------------------------------------------- */
-  const signup = async (name, email, password, address, role = "user") => {
-    const res = await axios.post(`${BACKEND_URL}/api/auth/signup`, {
-      name,
-      email,
-      password,
-      address,
-      role,
-    });
 
-    localStorage.setItem("token", res.data.token);
-    setAuthToken(res.data.token);
-    setUser(res.data.user);
-  };
+const signup = async ({ name, email, password, address, role = "user", vehicleType }) => {
+  const payload = { name, email, password, role };
+
+  // Handle delivery partner
+  if (role === "delivery") {
+    payload.vehicleType = vehicleType;
+    payload.isVerified = false; // pending admin approval
+    payload.status = "INACTIVE";
+  }
+
+  // Convert address to backend format if provided
+  if (address) {
+    payload.addressLine = address; // matches backend UserSchema
+  }
+
+  const res = await axios.post(`${BACKEND_URL}/api/auth/signup`, payload);
+
+  localStorage.setItem("token", res.data.token);
+  setAuthToken(res.data.token);
+  setUser(res.data.user);
+};
+
 
   /* --------------------------------------------------
      LOGIN
@@ -74,10 +85,11 @@ export const AuthProvider = ({ children }) => {
   /* --------------------------------------------------
      LOGOUT
   -------------------------------------------------- */
-const logout = (navigate) => {
+const logout = () => {
+  socket.disconnect();
   localStorage.removeItem("token");
   setUser(null);
-  if (navigate) navigate("/");
+  navigate("/");
 };
 
   /* --------------------------------------------------

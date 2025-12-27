@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
@@ -14,9 +13,13 @@ const orderSchema = new mongoose.Schema(
     ],
     totalAmount: { type: Number, required: true },
     address: { type: String, required: true },
-    paymentMethod: { type: String, enum: ["COD", "ONLINE"],  },
-   paymentStatus: { type: String, enum: ["PENDING", "PAID"], default: "PENDING" },
-orderStatus: { type: String, enum: ["PLACED", "DELIVERED", "CANCELLED"], default: "PLACED" },
+    paymentMethod: { type: String, enum: ["COD", "ONLINE"] },
+    paymentStatus: { type: String, enum: ["PENDING", "PAID"], default: "PENDING" },
+    orderStatus: { type: String, enum: ["PLACED", "DELIVERED", "CANCELLED"], default: "PLACED" },
+
+    // ✅ New fields for delivery tracking
+    deliveryBoy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // assigned delivery partner
+    deliveryLocation: { lat: Number, lng: Number }, // optional cached last location
   },
   { timestamps: true }
 );

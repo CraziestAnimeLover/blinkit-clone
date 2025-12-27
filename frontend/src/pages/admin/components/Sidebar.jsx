@@ -19,6 +19,7 @@ export default function Sidebar({ onChangePage }) {
     { id: "products", label: "Products", icon: <FiBox /> },
     { id: "orders", label: "Orders", icon: <FiList /> },
     { id: "customers", label: "Customers", icon: <FiUsers /> },
+    { id: "delivery-partners", label: "Delivery Partners", icon: <FiUsers /> },
   ];
 
   const handleClick = (id) => {
