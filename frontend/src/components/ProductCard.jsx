@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
@@ -8,6 +8,13 @@ const ProductCard = ({ product }) => {
   const [selectedVariant, setSelectedVariant] = useState(
     product?.variants?.[0] || null
   );
+
+  // 🚀 Optimized variant lookup
+  const variantMap = useMemo(() => {
+    return new Map(
+      product?.variants?.map((v) => [v.label, v]) || []
+    );
+  }, [product?.variants]);
 
   if (!product || !selectedVariant) return null;
 
@@ -29,11 +36,11 @@ const ProductCard = ({ product }) => {
     selectedVariant.stock > 0 && selectedVariant.stock <= 5;
 
   return (
-   <div className="p-3 sm:p-4 border rounded-xl transition flex flex-col h-full relative bg-white
-  shadow-[0_4px_12px_rgba(34,197,94,0.15)]
-  hover:shadow-[0_6px_18px_rgba(34,197,94,0.25)]">
-
-      
+    <div
+      className="p-3 sm:p-4 border rounded-xl transition flex flex-col h-full relative bg-white
+      shadow-[0_4px_12px_rgba(34,197,94,0.15)]
+      hover:shadow-[0_6px_18px_rgba(34,197,94,0.25)]"
+    >
       {/* 🔖 Discount Badge */}
       {hasDiscount && (
         <span className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded">
@@ -75,11 +82,7 @@ const ProductCard = ({ product }) => {
         <select
           value={selectedVariant.label}
           onChange={(e) =>
-            setSelectedVariant(
-              product.variants.find(
-                (v) => v.label === e.target.value
-              )
-            )
+            setSelectedVariant(variantMap.get(e.target.value))
           }
           className="mt-2 border rounded px-2 py-1 text-xs w-full"
         >
@@ -94,7 +97,7 @@ const ProductCard = ({ product }) => {
       {/* ⚠️ Stock Info */}
       {isOutOfStock ? (
         <p className="mt-2 text-xs text-red-600 font-semibold">
-          Out of stocks
+          Out of stock
         </p>
       ) : isLowStock ? (
         <p className="mt-2 text-xs text-orange-600 font-semibold">
