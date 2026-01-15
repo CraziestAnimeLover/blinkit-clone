@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { allCategories } from "./AllCategoriesPage"; // recommended fix
+import allCategories from "../../api/categories.js"; // recommended fix
 
 
 export default function CategoryPage() {

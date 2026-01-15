@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { allCategories } from "./AllCategoriesPage";
+import allCategories from "../../api/categories.js";
 
 export default function CategoriesSection() {
   const [selectedCategory, setSelectedCategory] = useState(null);

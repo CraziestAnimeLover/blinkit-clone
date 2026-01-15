@@ -176,6 +176,23 @@ const logout = () => {
   }
 };
 
+/* --------------------------------------------------
+   FORGOT PASSWORD
+-------------------------------------------------- */
+const requestPasswordReset = async (email) => {
+  return axios.post(`${BACKEND_URL}/api/auth/forgot-password`, { email });
+};
+
+/* --------------------------------------------------
+   RESET PASSWORD
+-------------------------------------------------- */
+const resetPassword = async (token, password) => {
+  return axios.post(
+    `${BACKEND_URL}/api/auth/reset-password/${token}`,
+    { password }
+  );
+};
+
 
   /* --------------------------------------------------
      PROVIDER
@@ -194,6 +211,8 @@ const logout = () => {
         sendOtp,
         verifyOtp,
           refreshUser,
+           requestPasswordReset,
+           resetPassword,
       }}
     >
       {children}

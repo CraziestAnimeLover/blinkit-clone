@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { allCategories } from "../../../data/allCategories.js";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
-  const [images, setImages] = useState([]); // current uploaded images
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
@@ -17,86 +17,54 @@ export default function AdminProducts() {
 
   const token = localStorage.getItem("token");
 
-  // 🔹 Memoized category options
-  const categoryOptions = useMemo(
-    () =>
-      allCategories.map((group) => (
-        <optgroup key={group.title} label={group.title}>
-          {group.items.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </optgroup>
-      )),
-    []
-  );
-
   // 🔹 Load products
-  const loadProducts = useCallback(async () => {
+  const loadProducts = async () => {
     try {
-      setLoading(true);
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/products`);
-      setProducts(res.data.products || []);
+      setProducts(res.data.products);
     } catch (err) {
-      console.error("Failed to load products:", err);
-    } finally {
-      setLoading(false);
+      console.error(err);
     }
-  }, []);
+  };
 
   useEffect(() => {
     loadProducts();
-  }, [loadProducts]);
-
-  // 🔹 Form handlers
-  const handleChange = useCallback((e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }, []);
 
-  const handleVariantChange = useCallback((index, field, value) => {
-    setForm((prev) => {
-      const updated = [...prev.variants];
-      updated[index][field] = value;
-      return { ...prev, variants: updated };
-    });
-  }, []);
+  // 🔹 Handle text inputs
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  // 🔹 Handle variants
+  const handleVariantChange = (index, field, value) => {
+    const updated = [...form.variants];
+    updated[index][field] = value;
+    setForm({ ...form, variants: updated });
+  };
 
   const addVariant = () => {
-    setForm((prev) => ({
-      ...prev,
-      variants: [...prev.variants, { label: "", price: "", mrp: "", stock: "" }],
-    }));
+    setForm({
+      ...form,
+      variants: [...form.variants, { label: "", price: "", mrp: "", stock: "" }],
+    });
   };
 
-  // 🔹 Drag & Drop / File input for images
-  const handleImages = (files) => {
-    setImages(Array.from(files)); // REPLACE previous images
-  };
+  // 🔹 Handle image selection
+  const handleImages = (e) => setImages([...e.target.files]);
 
-  const handleFileChange = (e) => handleImages(e.target.files);
-  const handleDrop = (e) => {
-    e.preventDefault();
-    handleImages(e.dataTransfer.files);
-  };
-  const handleDragOver = (e) => e.preventDefault();
-
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // 🔹 Submit new product
+  // 🔹 Submit product
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      if (!images.length) return alert("Please upload at least one image");
+    setLoading(true);
 
+    try {
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("brand", form.brand);
       formData.append("description", form.description);
       formData.append("category", form.category);
       formData.append("variants", JSON.stringify(form.variants));
+
+      // Append images to formData
       images.forEach((img) => formData.append("images", img));
 
       await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/products`, formData, {
@@ -106,7 +74,7 @@ export default function AdminProducts() {
       alert("✅ Product Added");
       loadProducts();
 
-      // reset form and images
+      // Reset form & images
       setForm({
         name: "",
         brand: "",
@@ -116,8 +84,10 @@ export default function AdminProducts() {
       });
       setImages([]);
     } catch (err) {
-      console.error("Failed to add product:", err);
+      console.error(err);
       alert("❌ Failed to add product");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -128,19 +98,20 @@ export default function AdminProducts() {
       await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      alert("🗑 Product deleted");
+      alert("🗑 Deleted");
       loadProducts();
     } catch (err) {
-      console.error("Failed to delete product:", err);
+      console.error(err);
       alert("❌ Failed to delete product");
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4">
       <h1 className="text-3xl font-bold mb-6">Admin Products</h1>
+
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* ADD PRODUCT FORM */}
+        {/* ADD PRODUCT */}
         <form onSubmit={handleSubmit} className="border p-4 rounded bg-white space-y-3">
           <input
             name="name"
@@ -150,6 +121,7 @@ export default function AdminProducts() {
             className="border p-2 w-full"
             required
           />
+
           <input
             name="brand"
             placeholder="Brand"
@@ -157,6 +129,7 @@ export default function AdminProducts() {
             onChange={handleChange}
             className="border p-2 w-full"
           />
+
           <select
             name="category"
             value={form.category}
@@ -165,8 +138,17 @@ export default function AdminProducts() {
             required
           >
             <option value="">Select category</option>
-            {categoryOptions}
+            {allCategories.map((group) => (
+              <optgroup key={group.title} label={group.title}>
+                {group.items.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
+
           <textarea
             name="description"
             placeholder="Description"
@@ -211,93 +193,65 @@ export default function AdminProducts() {
             </button>
           </div>
 
-          {/* DRAG & DROP IMAGE UPLOAD */}
-          <div
-            className="border border-dashed border-gray-400 p-4 text-center cursor-pointer rounded"
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onClick={() => document.getElementById("imageInput").click()}
-          >
-            {images.length ? (
-              <div className="flex flex-wrap gap-2 justify-start max-h-48 overflow-y-auto">
-                {images.map((img, i) => (
-                  <div key={i} className="relative w-20 h-20 rounded overflow-hidden border">
-                    <img
-                      src={URL.createObjectURL(img)}
-                      alt="preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(i)}
-                      className="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>Drag & drop images here or click to upload</p>
-            )}
-            <input
-              id="imageInput"
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </div>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImages}
+            className="border p-2 w-full"
+          />
 
-          <button className="bg-green-600 text-white py-2 rounded w-full">Add Product</button>
+          <button
+            type="submit"
+            className={`bg-green-600 text-white py-2 rounded w-full ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+            disabled={loading}
+          >
+            {loading ? "Uploading..." : "Add Product"}
+          </button>
         </form>
 
-        {/* PRODUCTS TABLE */}
-        <div className="lg:col-span-2 border rounded bg-white overflow-x-auto">
-          {loading ? (
-            <p className="p-4 text-center">Loading products...</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-200">
-                <tr>
-                  <th className="p-2">Image</th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Variants</th>
-                  <th>Action</th>
+        {/* PRODUCTS LIST */}
+        <div className="lg:col-span-2 border rounded bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="p-2">Image</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Variants</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p) => (
+                <tr key={p._id} className="border-t">
+                  <td className="p-2">
+                    <img src={p.images?.[0]?.url} className="w-12 h-12 object-cover" />
+                  </td>
+                  <td>{p.name}</td>
+                  <td>{p.category}</td>
+                  <td>{p.variants.length}</td>
+                  <td>
+                    <button
+                      onClick={() => handleDelete(p._id)}
+                      className="bg-red-500 text-white px-2 py-1 rounded"
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {products.length > 0 ? (
-                  products.map((p) => (
-                    <tr key={p._id} className="border-t">
-                      <td className="p-2">
-                        <img src={p.images?.[0]?.url} className="w-12 h-12 object-cover rounded" />
-                      </td>
-                      <td>{p.name}</td>
-                      <td>{p.category}</td>
-                      <td>{p.variants.length}</td>
-                      <td>
-                        <button
-                          onClick={() => handleDelete(p._id)}
-                          className="bg-red-500 text-white px-2 py-1 rounded"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="p-4 text-center">
-                      No products
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
+              ))}
+              {products.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="p-4 text-center">
+                    No products
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

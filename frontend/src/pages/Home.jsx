@@ -424,8 +424,8 @@ const Home = () => {
 
 
       {/* Main Categories Carousel */}
-      {/* <h2 className="text-xl font-bold mt-6 mb-3">Categories</h2> */}
-      {/* <div className="relative">
+      {/* <h2 className="text-xl font-bold mt-6 mb-3">Categories</h2> 
+       <div className="relative">
         <button
           onClick={() => scroll("left")}
           className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-green-100 z-10"
