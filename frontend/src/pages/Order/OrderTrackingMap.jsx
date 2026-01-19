@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { socket } from "../../socket.js"; // shared socket
+import { socket } from "../../socket.js";
 
 // ================= ICON SETUP =================
 const icon = new L.Icon({
@@ -21,20 +21,43 @@ const MapUpdater = ({ lat, lng }) => {
   return null;
 };
 
-// ================= SMOOTH MARKER =================
+// ================= SMOOTH MOVING MARKER =================
 const SmoothMarker = ({ position }) => {
   const markerRef = useRef();
+  const lastPosRef = useRef(position);
+  const animationRef = useRef();
+
   useEffect(() => {
-    if (markerRef.current && position) {
-      markerRef.current.setLatLng([position.lat, position.lng]);
-    }
+    if (!position || !markerRef.current) return;
+
+    const start = lastPosRef.current || position;
+    const end = position;
+    const duration = 1000; // 1 second animation
+    const startTime = performance.now();
+
+    const animate = (time) => {
+      const elapsed = time - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const lat = start.lat + (end.lat - start.lat) * t;
+      const lng = start.lng + (end.lng - start.lng) * t;
+
+      markerRef.current.setLatLng([lat, lng]);
+
+      if (t < 1) animationRef.current = requestAnimationFrame(animate);
+      else lastPosRef.current = end; // save last position
+    };
+
+    cancelAnimationFrame(animationRef.current);
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationRef.current);
   }, [position]);
 
-  if (!position || position.lat == null || position.lng == null) return null;
+  if (!position) return null;
 
   return (
     <Marker ref={markerRef} position={[position.lat, position.lng]} icon={icon}>
-      <Popup>🚴 Delivery Partner is here</Popup>
+      <Popup>🚴 Delivery Partner</Popup>
     </Marker>
   );
 };
@@ -45,20 +68,16 @@ const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
   const [route, setRoute] = useState([]);
   const [eta, setEta] = useState(null);
 
-  // Fallback coordinates
   const fallback = { lat: customerLat || 37.7749, lng: customerLng || -122.4194 };
 
+  // Listen for live location via socket
   useEffect(() => {
     if (!orderId) return;
 
-    // Join the order room
     socket.emit("joinOrder", orderId);
 
-    // Listen for live location updates
     const handleLocationUpdate = (data) => {
-      if (data && data.lat != null && data.lng != null) {
-        setLocation(data);
-      }
+      if (data?.lat != null && data?.lng != null) setLocation(data);
     };
 
     socket.on("locationUpdate", handleLocationUpdate);
@@ -99,18 +118,19 @@ const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
         zoom={15}
         style={{ height: "400px", width: "100%" }}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
         <MapUpdater lat={markerPosition.lat} lng={markerPosition.lng} />
+
         <SmoothMarker position={markerPosition} />
 
-        {/* Customer marker */}
+        {/* Customer Marker */}
         {customerLat && customerLng && (
           <Marker position={[customerLat, customerLng]}>
             <Popup>🏠 Customer Location</Popup>
           </Marker>
         )}
 
-        {/* Route */}
+        {/* Route Polyline */}
         {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
       </MapContainer>
 
