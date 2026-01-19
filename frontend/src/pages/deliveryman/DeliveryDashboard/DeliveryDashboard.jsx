@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -49,6 +49,18 @@ const DeliveryDashboard = () => {
               headers: { Authorization: `Bearer ${token}` },
             }
           );
+
+          // Update local state for live map preview
+          setOrders((prev) =>
+            prev.map((o) =>
+              o._id === activeOrderId
+                ? {
+                    ...o,
+                    deliveryLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+                  }
+                : o
+            )
+          );
         } catch (err) {
           console.error("Location update failed", err);
         }
@@ -61,15 +73,12 @@ const DeliveryDashboard = () => {
       }
     );
 
-    // stop tracking when order changes
     return () => navigator.geolocation.clearWatch(watchId);
   }, [activeOrderId]);
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-green-600">
-        🚴 Delivery Dashboard
-      </h1>
+      <h1 className="text-3xl font-bold text-green-600">🚴 Delivery Dashboard</h1>
 
       {orders.length === 0 && <p>No assigned orders yet.</p>}
 
@@ -82,19 +91,15 @@ const DeliveryDashboard = () => {
           <button
             onClick={() => setActiveOrderId(order._id)}
             className={`px-4 py-2 rounded text-white ${
-              activeOrderId === order._id
-                ? "bg-gray-400"
-                : "bg-green-600"
+              activeOrderId === order._id ? "bg-gray-400" : "bg-green-600"
             }`}
             disabled={activeOrderId === order._id}
           >
-            {activeOrderId === order._id
-              ? "Tracking Active"
-              : "Start Delivery"}
+            {activeOrderId === order._id ? "Tracking Active" : "Start Delivery"}
           </button>
 
           {/* Local map preview */}
-          {order.deliveryLocation && (
+          {order.deliveryLocation && order.customerLocation && (
             <MapContainer
               center={[
                 order.deliveryLocation.lat,
@@ -104,15 +109,34 @@ const DeliveryDashboard = () => {
               className="h-[250px] w-full"
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+              {/* Delivery marker */}
               <Marker
-                position={[
-                  order.deliveryLocation.lat,
-                  order.deliveryLocation.lng,
-                ]}
+                position={[order.deliveryLocation.lat, order.deliveryLocation.lng]}
                 icon={icon}
               >
                 <Popup>Your current position</Popup>
               </Marker>
+
+              {/* Customer marker */}
+              <Marker
+                position={[
+                  order.customerLocation.lat,
+                  order.customerLocation.lng,
+                ]}
+              >
+                <Popup>Customer Location</Popup>
+              </Marker>
+
+              {/* Route line */}
+              <Polyline
+                positions={[
+                  [order.deliveryLocation.lat, order.deliveryLocation.lng],
+                  [order.customerLocation.lat, order.customerLocation.lng],
+                ]}
+                color="blue"
+                weight={4}
+              />
             </MapContainer>
           )}
         </div>
