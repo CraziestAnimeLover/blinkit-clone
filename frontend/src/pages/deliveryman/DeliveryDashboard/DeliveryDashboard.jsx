@@ -36,28 +36,29 @@ const DeliveryDashboard = () => {
   useEffect(() => {
     if (!activeOrderId) return;
 
-    const watchId = navigator.geolocation.watchPosition(
-      async (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setDeliveryPos(loc);
+   // inside useEffect for active order
+const watchId = navigator.geolocation.watchPosition(
+  async (pos) => {
+    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    setDeliveryPos(loc);
 
-        // Update backend
-        try {
-          await axios.put(
-            `${BACKEND_URL}/api/orders/${activeOrderId}/location`,
-            loc,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        } catch (err) {
-          console.error("Backend location update failed", err);
-        }
+    try {
+      await axios.put(
+        `${BACKEND_URL}/api/orders/${activeOrderId}/location`,
+        loc,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-        // Emit live location via socket
-        socket.emit("locationUpdate", { orderId: activeOrderId, ...loc });
-      },
-      (err) => console.error("GPS error", err),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
+      // Emit live location to socket
+      socket.emit("locationUpdate", { orderId: activeOrderId, ...loc });
+    } catch (err) {
+      console.error("Location update failed", err);
+    }
+  },
+  (err) => console.error("GPS error", err),
+  { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+);
+
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, [activeOrderId]);

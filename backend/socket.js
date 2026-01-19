@@ -16,10 +16,20 @@ export const initSocket = (server) => {
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
-    socket.on("joinOrder", (orderId) => {
-      socket.join(orderId);
-      console.log("Joined room for order:", orderId);
-    });
+     socket.on("joinOrder", (orderId) => {
+    socket.join(orderId);
+  });
+
+  // Leave order room
+  socket.on("leaveOrder", (orderId) => {
+    socket.leave(orderId);
+  });
+
+  // Broadcast location updates
+  socket.on("locationUpdate", (data) => {
+    const { orderId, lat, lng } = data;
+    io.to(orderId).emit("locationUpdate", { lat, lng });
+  });
 
     socket.on("sendLocation", ({ orderId, lat, lng }) => {
       if (!orderId || lat == null || lng == null) return;

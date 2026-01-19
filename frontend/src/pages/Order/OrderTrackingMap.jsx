@@ -35,20 +35,23 @@ const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
   const fallback = { lat: customerLat || 37.7749, lng: customerLng || -122.4194 };
 
   // ================= SOCKET: live delivery location =================
-  useEffect(() => {
-    if (!orderId) return;
+useEffect(() => {
+  if (!orderId) return;
 
-    socket.emit("joinOrder", orderId);
-    const handleLocation = (data) => {
-      if (data?.lat != null && data?.lng != null) setDeliveryLocation(data);
-    };
-    socket.on("locationUpdate", handleLocation);
+  socket.emit("joinOrder", orderId);
 
-    return () => {
-      socket.off("locationUpdate", handleLocation);
-      socket.emit("leaveOrder", orderId);
-    };
-  }, [orderId]);
+  const handleLocationUpdate = (data) => {
+    if (data?.lat != null && data?.lng != null) setDeliveryLocation(data);
+  };
+
+  socket.on("locationUpdate", handleLocationUpdate);
+
+  return () => {
+    socket.off("locationUpdate", handleLocationUpdate);
+    socket.emit("leaveOrder", orderId);
+  };
+}, [orderId]);
+
 
   // ================= FETCH ROUTE =================
   useEffect(() => {
