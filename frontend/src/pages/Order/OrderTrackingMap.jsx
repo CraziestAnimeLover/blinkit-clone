@@ -1,19 +1,32 @@
-// OrderTrackingMap.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { socket } from "../../socket.js";
+import scootyImg from "../../assets/binkitscooter.jpg";
+import customerImg from "../../assets/binkitscooter.jpg";
 
 // ================= ICONS =================
+// Scooty icon for delivery partner
 const deliveryIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-  iconSize: [35, 35],
+  iconUrl: scootyImg,
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+  popupAnchor: [0, -15],
+  shadowUrl: null,
 });
+
+
+
+// Customer house icon
 const customerIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
+  iconUrl: customerImg,
   iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -10],
+  shadowUrl: null,
 });
+
 
 // ================= MAP FLY TO =================
 const MapFlyTo = ({ lat, lng }) => {
@@ -30,28 +43,28 @@ const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
   const [route, setRoute] = useState([]);
   const [eta, setEta] = useState(null);
   const markerRef = useRef(null);
-  const progressRef = useRef(0); // progress along route
+  const progressRef = useRef(0);
+  const animationRef = useRef(null);
 
   const fallback = { lat: customerLat || 37.7749, lng: customerLng || -122.4194 };
 
   // ================= SOCKET: live delivery location =================
-useEffect(() => {
-  if (!orderId) return;
+  useEffect(() => {
+    if (!orderId) return;
 
-  socket.emit("joinOrder", orderId);
+    socket.emit("joinOrder", orderId);
 
-  const handleLocationUpdate = (data) => {
-    if (data?.lat != null && data?.lng != null) setDeliveryLocation(data);
-  };
+    const handleLocationUpdate = (data) => {
+      if (data?.lat != null && data?.lng != null) setDeliveryLocation(data);
+    };
 
-  socket.on("locationUpdate", handleLocationUpdate);
+    socket.on("locationUpdate", handleLocationUpdate);
 
-  return () => {
-    socket.off("locationUpdate", handleLocationUpdate);
-    socket.emit("leaveOrder", orderId);
-  };
-}, [orderId]);
-
+    return () => {
+      socket.off("locationUpdate", handleLocationUpdate);
+      socket.emit("leaveOrder", orderId);
+    };
+  }, [orderId]);
 
   // ================= FETCH ROUTE =================
   useEffect(() => {
@@ -61,13 +74,14 @@ useEffect(() => {
       try {
         const res = await fetch(
           `https://router.project-osrm.org/route/v1/driving/${deliveryLocation.lng},${deliveryLocation.lat};${customerLng},${customerLat}?overview=full&geometries=geojson`
-        ).then(r => r.json());
+        ).then((r) => r.json());
 
         if (!res.routes || res.routes.length === 0) return;
 
         const coords = res.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
 
-        if (coords.length >= 2) setRoute(coords);
+        setRoute(coords);
+        progressRef.current = 0; // reset animation
         const durationInMin = Math.ceil(res.routes[0].duration / 60);
         setEta(durationInMin);
       } catch (err) {
@@ -80,19 +94,23 @@ useEffect(() => {
 
   // ================= ANIMATE MARKER =================
   useEffect(() => {
-    if (!route.length || !deliveryLocation || !markerRef.current) return;
+    if (!route.length || !markerRef.current) return;
 
-    const moveMarker = () => {
-      const nextIndex = Math.min(Math.floor(progressRef.current), route.length - 1);
-      markerRef.current.setLatLng(route[nextIndex]);
-      progressRef.current += 0.05; // speed of animation
+    const animate = () => {
       if (progressRef.current < route.length) {
-        requestAnimationFrame(moveMarker);
+        const nextIndex = Math.floor(progressRef.current);
+        markerRef.current.setLatLng(route[nextIndex]);
+        progressRef.current += 0.05;
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        cancelAnimationFrame(animationRef.current);
       }
     };
 
-    moveMarker();
-  }, [route, deliveryLocation]);
+    animate();
+
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [route]);
 
   // ================= TRAIL POLYLINE =================
   const trail = route.slice(0, Math.floor(progressRef.current) + 1);
@@ -113,10 +131,10 @@ useEffect(() => {
         {/* Trail showing progress */}
         {trail.length > 1 && <Polyline positions={trail} color="green" weight={5} />}
 
-        {/* Delivery marker */}
+        {/* Delivery marker (Scooty) */}
         {route.length > 0 && (
           <Marker ref={markerRef} position={route[0]} icon={deliveryIcon}>
-            <Popup>🚴 Delivery Partner <br /> ETA: {eta ? `${eta} min` : "Calculating..."}</Popup>
+            <Popup>🏍️ Delivery Partner <br /> ETA: {eta ? `${eta} min` : "Calculating..."}</Popup>
           </Marker>
         )}
 
