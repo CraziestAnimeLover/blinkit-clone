@@ -5,6 +5,7 @@ import {
   updateAddress,
   deleteAddress,
   setDefaultAddress,
+  reverseGeocode,
 } from "../controllers/address.controller.js";
 import auth from "../middleware/authMiddleware.js";
 
@@ -15,5 +16,6 @@ router.get("/", auth, getAddresses);
 router.put("/:addressId", auth, updateAddress);
 router.patch("/:addressId/default", auth, setDefaultAddress);
 router.delete("/:addressId", auth, deleteAddress);
+router.get("/reverse", reverseGeocode);
 
 export default router;

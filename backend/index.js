@@ -5,9 +5,8 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import http from "http";
-import { Server } from "socket.io";
 import { fileURLToPath } from "url";
-
+import { initSocket } from "./socket.js";
 import connectDB from "./config/db.js";
 import passport from "passport";
 import "./config/passport.js";
@@ -70,37 +69,13 @@ app.get("/", (req, res) => {
 ======================= */
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: [
-      process.env.FRONTEND_URL,
-      "https://blinkit-clone-frontend-one.vercel.app",
-    ],
-    credentials: true,
-  },
-});
-
-io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
-
-  socket.on("joinOrder", (orderId) => {
-    socket.join(orderId);
-  });
-
-  socket.on("sendLocation", ({ orderId, lat, lng }) => {
-    if (!orderId || lat == null || lng == null) return;
-    io.to(orderId).emit("locationUpdate", { lat, lng });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Socket disconnected:", socket.id);
-  });
-});
+// ✅ Initialize socket once
+initSocket(server);
 
 // Start server
 server.listen(PORT, () =>
   console.log(`Server + Socket running on port ${PORT}`)
 );
 
-// Export app (still useful for testing)
+// Export app (for testing)
 export default app;

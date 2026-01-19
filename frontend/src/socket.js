@@ -4,5 +4,8 @@ const SOCKET_URL = import.meta.env.VITE_BACKEND_URL;
 
 export const socket = io(SOCKET_URL, {
   transports: ["websocket"],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
   autoConnect: true,
 });

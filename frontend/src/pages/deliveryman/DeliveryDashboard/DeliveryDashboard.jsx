@@ -2,84 +2,119 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+const icon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149059.png",
+  iconSize: [30, 30],
+});
 
 const DeliveryDashboard = () => {
   const [orders, setOrders] = useState([]);
+  const [activeOrderId, setActiveOrderId] = useState(null);
+
   const token = localStorage.getItem("token");
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-  const fetchOrders = async () => {
-    try {
-      const res = await axios.get(`${BACKEND_URL}/api/orders/assigned`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setOrders(res.data.orders || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
+  // 1️⃣ Fetch assigned orders
   useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await axios.get(`${BACKEND_URL}/api/orders/assigned`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setOrders(res.data.orders || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
   }, []);
 
-  const updateMyLocation = () => {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const { latitude, longitude } = pos.coords;
+  // 2️⃣ Start LIVE GPS tracking for active order
+  useEffect(() => {
+    if (!activeOrderId) return;
 
-      orders.forEach((order) => {
-        axios.put(
-          `${BACKEND_URL}/api/orders/${order._id}/location`,
-          { lat: latitude, lng: longitude },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      });
-    });
-  };
+    const watchId = navigator.geolocation.watchPosition(
+      async (pos) => {
+        try {
+          await axios.put(
+            `${BACKEND_URL}/api/orders/${activeOrderId}/location`,
+            {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+        } catch (err) {
+          console.error("Location update failed", err);
+        }
+      },
+      (err) => console.error("GPS error", err),
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 5000,
+      }
+    );
+
+    // stop tracking when order changes
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [activeOrderId]);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6 z-5">
-      <h1 className="text-3xl font-bold text-green-600">Live Delivery Dashboard</h1>
-      <button
-        onClick={updateMyLocation}
-        className="px-4 py-2 bg-green-600 text-white rounded"
-      >
-        Update My Location
-      </button>
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <h1 className="text-3xl font-bold text-green-600">
+        🚴 Delivery Dashboard
+      </h1>
 
       {orders.length === 0 && <p>No assigned orders yet.</p>}
 
       {orders.map((order) => (
-        <div key={order._id} className="border p-4 rounded mb-4">
+        <div key={order._id} className="border p-4 rounded space-y-3">
           <h2 className="font-bold">Order #{order._id}</h2>
-          <p>Delivery Address: {order.address}</p>
+          <p>📍 Address: {order.address}</p>
 
-          {/* Map */}
-          
+          {/* Start / Stop tracking */}
+          <button
+            onClick={() => setActiveOrderId(order._id)}
+            className={`px-4 py-2 rounded text-white ${
+              activeOrderId === order._id
+                ? "bg-gray-400"
+                : "bg-green-600"
+            }`}
+            disabled={activeOrderId === order._id}
+          >
+            {activeOrderId === order._id
+              ? "Tracking Active"
+              : "Start Delivery"}
+          </button>
+
+          {/* Local map preview */}
           {order.deliveryLocation && (
             <MapContainer
-              center={[order.deliveryLocation.lat, order.deliveryLocation.lng]}
+              center={[
+                order.deliveryLocation.lat,
+                order.deliveryLocation.lng,
+              ]}
               zoom={15}
-              className="h-[300px] w-full relative z-[-1000]"
+              className="h-[250px] w-full"
             >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap contributors"
-              />
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <Marker
-                position={[order.deliveryLocation.lat, order.deliveryLocation.lng]}
-                icon={L.icon({
-                  iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149059.png",
-                  iconSize: [30, 30],
-                })}
+                position={[
+                  order.deliveryLocation.lat,
+                  order.deliveryLocation.lng,
+                ]}
+                icon={icon}
               >
-                <Popup>Delivery Partner is here</Popup>
+                <Popup>Your current position</Popup>
               </Marker>
             </MapContainer>
           )}
-         
         </div>
       ))}
     </div>

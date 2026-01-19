@@ -21,6 +21,12 @@ router.post("/:id/payment", authMiddleware, addPaymentMethod);
 router.put("/:id/status", authMiddleware, updateOrderStatus);
 router.put("/assign-delivery", authMiddleware, assignDeliveryBoy);
 router.get("/assigned", authMiddleware, getAssignedOrders);
+router.put(
+  "/orders/:id/location",
+  authMiddleware,
+  updateDeliveryLocation
+);
+
 // delivery boy
 router.put("/:id/location", authMiddleware, updateDeliveryLocation);
 // ✅ New route for delivery location

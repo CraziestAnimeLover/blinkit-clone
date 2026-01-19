@@ -1,5 +1,6 @@
 import Order from "../model/Order.js";
 import User from "../model/User.model.js";
+import { getIO } from "../socket.js";
 
 import jwt from "jsonwebtoken";
 
@@ -170,14 +171,14 @@ export const getAssignedOrders = async (req, res) => {
 
 
 export const updateDeliveryLocation = async (req, res) => {
-  const { id } = req.params;
-  const { lat, lng } = req.body;
-
   try {
+    const { id } = req.params;
+    const { lat, lng } = req.body;
+
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    // check if current user is the assigned delivery boy
+    // check delivery boy
     if (order.deliveryBoy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
@@ -185,10 +186,13 @@ export const updateDeliveryLocation = async (req, res) => {
     order.deliveryLocation = { lat, lng };
     await order.save();
 
+    // ✅ Emit via socket
+    const io = getIO();
+    io.to(order._id.toString()).emit("liveLocation", { lat, lng });
+
     res.status(200).json({ message: "Location updated" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to update location" });
+    res.status(500).json({ message: err.message });
   }
 };
-

@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import SmoothMarker from "./SmoothMarker";
-import "leaflet/dist/leaflet.css"; // Leaflet CSS
+import "leaflet/dist/leaflet.css";
 
 /* ================= LEAFLET ICON FIX ================= */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -19,17 +19,18 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-/* ================= REVERSE GEOCODE ================= */
+/* ================= REVERSE GEOCODE VIA BACKEND ================= */
 const reverseGeocode = async (lat, lng) => {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-    {
-      headers: {
-        "User-Agent": "blinkit-clone/1.0 (your-email@gmail.com)",
-      },
-    }
-  );
-  return res.json();
+  try {
+    const res = await axios.get(
+      `${import.meta.env.VITE_BACKEND_URL}/api/addresses/reverse`,
+      { params: { lat, lon: lng } }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Reverse geocode error:", err);
+    return {};
+  }
 };
 
 /* ================= MAP CLICK HANDLER ================= */
@@ -60,9 +61,7 @@ const MapClickHandler = ({ setNewAddress }) => {
 const RecenterMap = ({ lat, lng }) => {
   const map = useMap();
   useEffect(() => {
-    if (lat && lng) {
-      map.flyTo([lat, lng], 16, { duration: 1 });
-    }
+    if (lat && lng) map.flyTo([lat, lng], 16, { duration: 1 });
   }, [lat, lng]);
   return null;
 };
@@ -78,12 +77,10 @@ const Address = () => {
   const HANDLING_CHARGE = 2;
   const SMALL_CART_CHARGE = 20;
   const grandTotal =
-  parseFloat(total || 0) +
-  parseFloat(DELIVERY_CHARGE) +
-  parseFloat(HANDLING_CHARGE) +
-  parseFloat(SMALL_CART_CHARGE);
-
-
+    parseFloat(total || 0) +
+    parseFloat(DELIVERY_CHARGE) +
+    parseFloat(HANDLING_CHARGE) +
+    parseFloat(SMALL_CART_CHARGE);
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState("");
@@ -154,52 +151,47 @@ const Address = () => {
   };
 
   /* ================= PLACE ORDER ================= */
-const handlePlaceOrder = async () => {
-  let addressToUse;
+  const handlePlaceOrder = async () => {
+    let addressToUse;
 
-  if (selectedAddress) {
-    addressToUse = addresses.find(a => a._id === selectedAddress);
-  } else {
-    const res = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/addresses`,
-      newAddress,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    addressToUse = res.data.address;
-  }
+    if (selectedAddress) {
+      addressToUse = addresses.find((a) => a._id === selectedAddress);
+    } else {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/addresses`,
+        newAddress,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addressToUse = res.data.address;
+    }
 
-  // ✅ Convert address object to string to match schema
-  const formattedAddress = `${addressToUse.line1}, ${addressToUse.city}, ${addressToUse.state} - ${addressToUse.zip}`;
+    const formattedAddress = `${addressToUse.line1}, ${addressToUse.city}, ${addressToUse.state} - ${addressToUse.zip}`;
 
-  const payload = {
-    userId: user._id,
-    items: cart.map(i => ({
-      productId: i._id,
-      name: i.name,
-      price: Number(i.price), // ensure number
-      quantity: Number(i.quantity), // ensure number
-    })),
-    totalAmount: Number(grandTotal), // ensure number
-    address: formattedAddress, // 👈 string now
-    paymentMethod: "COD",
+    const payload = {
+      userId: user._id,
+      items: cart.map((i) => ({
+        productId: i._id,
+        name: i.name,
+        price: Number(i.price),
+        quantity: Number(i.quantity),
+      })),
+      totalAmount: Number(grandTotal),
+      address: formattedAddress,
+      paymentMethod: "COD",
+    };
+
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/orders`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      navigate(`/payment/${res.data.order._id}`);
+    } catch (err) {
+      console.error("Order error:", err.response?.data || err.message);
+    }
   };
-
-  console.log("Order payload:", payload); // ✅ sanity check
-
-  try {
-    const res = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/orders`,
-      payload,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    console.log("Order created:", res.data.order);
-    navigate(`/payment/${res.data.order._id}`);
-  } catch (err) {
-    console.error("Order error:", err.response?.data || err.message);
-  }
-};
-
 
   /* ================= FIX MAP SIZE ================= */
   useEffect(() => {
@@ -263,7 +255,9 @@ const handlePlaceOrder = async () => {
             <RecenterMap lat={newAddress.lat} lng={newAddress.lng} />
 
             {newAddress.lat && newAddress.lng && (
-              <SmoothMarker position={{ lat: newAddress.lat, lng: newAddress.lng }} />
+              <SmoothMarker
+                position={{ lat: newAddress.lat, lng: newAddress.lng }}
+              />
             )}
           </MapContainer>
         </div>

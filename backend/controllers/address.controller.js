@@ -1,4 +1,8 @@
 import User from "../model/User.model.js"
+import axios from "axios";  // ✅ ADD THIS
+
+// existing imports
+
 
 export const addAddress = async (req, res) => {
   try {
@@ -136,3 +140,19 @@ export const deleteAddress = async (req, res) => {
   }
 };
 
+export const reverseGeocode = async (req, res) => {
+  try {
+    const { lat, lon } = req.query;
+    const response = await axios.get(
+      `https://nominatim.openstreetmap.org/reverse`,
+      {
+        params: { lat, lon, format: "json" },
+        headers: { "User-Agent": "BlinkitClone/1.0" }, // Nominatim requires User-Agent
+      }
+    );
+    res.json(response.data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to reverse geocode" });
+  }
+};

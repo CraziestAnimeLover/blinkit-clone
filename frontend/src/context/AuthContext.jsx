@@ -1,13 +1,14 @@
 import axios from "axios";
 import { createContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+
 import { socket } from "../socket";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const usenavigate = useNavigate
+
+
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   /* --------------------------------------------------
@@ -89,7 +90,7 @@ const logout = () => {
   socket.disconnect();
   localStorage.removeItem("token");
   setUser(null);
-  navigate("/");
+ 
 };
 
   /* --------------------------------------------------
