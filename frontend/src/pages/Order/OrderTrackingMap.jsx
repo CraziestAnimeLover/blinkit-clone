@@ -1,125 +1,98 @@
+// OrderTrackingMap.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { socket } from "../../socket.js";
 
-// ================= ICON SETUP =================
-const icon = new L.Icon({
+// ================= ICONS =================
+const deliveryIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   iconSize: [35, 35],
 });
+const customerIcon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
+  iconSize: [30, 30],
+});
 
-// ================= MAP UPDATER =================
-const MapUpdater = ({ lat, lng }) => {
+// ================= MAP FLY TO =================
+const MapFlyTo = ({ lat, lng }) => {
   const map = useMap();
   useEffect(() => {
-    if (lat != null && lng != null) {
-      map.flyTo([lat, lng], map.getZoom(), { duration: 1 });
-    }
+    if (lat && lng) map.flyTo([lat, lng], map.getZoom(), { duration: 0.5 });
   }, [lat, lng]);
   return null;
 };
 
-// ================= MARKER ALONG ROUTE =================
-const RouteFollowerMarker = ({ route }) => {
-  const markerRef = useRef();
-  const indexRef = useRef(0);
-
-  useEffect(() => {
-    if (!route || route.length === 0 || !markerRef.current) return;
-
-    let animationFrame;
-    const speed = 0.0005; // movement speed (adjust to your liking)
-
-    const moveAlongRoute = () => {
-      if (indexRef.current >= route.length - 1) return;
-
-      const [lat1, lng1] = route[indexRef.current];
-      const [lat2, lng2] = route[indexRef.current + 1];
-
-      const latDiff = lat2 - lat1;
-      const lngDiff = lng2 - lng1;
-
-      let progress = 0;
-
-      const step = () => {
-        progress += speed;
-        if (progress >= 1) {
-          indexRef.current += 1;
-          progress = 0;
-        }
-
-        const lat = lat1 + latDiff * progress;
-        const lng = lng1 + lngDiff * progress;
-
-        markerRef.current.setLatLng([lat, lng]);
-        animationFrame = requestAnimationFrame(step);
-      };
-
-      step();
-    };
-
-    moveAlongRoute();
-
-    return () => cancelAnimationFrame(animationFrame);
-  }, [route]);
-
-  if (!route || route.length === 0) return null;
-
-  return (
-    <Marker ref={markerRef} position={route[0]} icon={icon}>
-      <Popup>🚴 Delivery Partner</Popup>
-    </Marker>
-  );
-};
-
 // ================= MAIN COMPONENT =================
 const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
-  const [location, setLocation] = useState(null);
+  const [deliveryLocation, setDeliveryLocation] = useState(null);
   const [route, setRoute] = useState([]);
   const [eta, setEta] = useState(null);
+  const markerRef = useRef(null);
+  const progressRef = useRef(0); // progress along route
 
   const fallback = { lat: customerLat || 37.7749, lng: customerLng || -122.4194 };
 
-  // Listen for live location via socket
+  // ================= SOCKET: live delivery location =================
   useEffect(() => {
     if (!orderId) return;
 
     socket.emit("joinOrder", orderId);
-
-    const handleLocationUpdate = (data) => {
-      if (data?.lat != null && data?.lng != null) setLocation(data);
+    const handleLocation = (data) => {
+      if (data?.lat != null && data?.lng != null) setDeliveryLocation(data);
     };
-
-    socket.on("locationUpdate", handleLocationUpdate);
+    socket.on("locationUpdate", handleLocation);
 
     return () => {
-      socket.off("locationUpdate", handleLocationUpdate);
+      socket.off("locationUpdate", handleLocation);
       socket.emit("leaveOrder", orderId);
     };
   }, [orderId]);
 
-  // Fetch route whenever location updates
+  // ================= FETCH ROUTE =================
   useEffect(() => {
-    if (!location || !customerLat || !customerLng) return;
+    if (!deliveryLocation || !customerLat || !customerLng) return;
 
     const fetchRoute = async () => {
       try {
         const res = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${location.lng},${location.lat};${customerLng},${customerLat}?overview=full&geometries=geojson`
-        ).then((r) => r.json());
+          `https://router.project-osrm.org/route/v1/driving/${deliveryLocation.lng},${deliveryLocation.lat};${customerLng},${customerLat}?overview=full&geometries=geojson`
+        ).then(r => r.json());
+
+        if (!res.routes || res.routes.length === 0) return;
 
         const coords = res.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-        setRoute(coords);
-        setEta(Math.ceil(res.routes[0].duration / 60));
+
+        if (coords.length >= 2) setRoute(coords);
+        const durationInMin = Math.ceil(res.routes[0].duration / 60);
+        setEta(durationInMin);
       } catch (err) {
         console.error("Error fetching route:", err);
       }
     };
 
     fetchRoute();
-  }, [location, customerLat, customerLng]);
+  }, [deliveryLocation, customerLat, customerLng]);
+
+  // ================= ANIMATE MARKER =================
+  useEffect(() => {
+    if (!route.length || !deliveryLocation || !markerRef.current) return;
+
+    const moveMarker = () => {
+      const nextIndex = Math.min(Math.floor(progressRef.current), route.length - 1);
+      markerRef.current.setLatLng(route[nextIndex]);
+      progressRef.current += 0.05; // speed of animation
+      if (progressRef.current < route.length) {
+        requestAnimationFrame(moveMarker);
+      }
+    };
+
+    moveMarker();
+  }, [route, deliveryLocation]);
+
+  // ================= TRAIL POLYLINE =================
+  const trail = route.slice(0, Math.floor(progressRef.current) + 1);
 
   return (
     <div>
@@ -129,17 +102,24 @@ const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
         style={{ height: "400px", width: "100%" }}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <MapUpdater lat={location?.lat || fallback.lat} lng={location?.lng || fallback.lng} />
+        <MapFlyTo lat={deliveryLocation?.lat || fallback.lat} lng={deliveryLocation?.lng || fallback.lng} />
 
-        {/* Route Polyline */}
-        {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
+        {/* Full route */}
+        {route.length > 1 && <Polyline positions={route} color="blue" weight={5} />}
 
-        {/* Marker following the route */}
-        {route.length > 0 && <RouteFollowerMarker route={route} />}
+        {/* Trail showing progress */}
+        {trail.length > 1 && <Polyline positions={trail} color="green" weight={5} />}
 
-        {/* Customer Marker */}
+        {/* Delivery marker */}
+        {route.length > 0 && (
+          <Marker ref={markerRef} position={route[0]} icon={deliveryIcon}>
+            <Popup>🚴 Delivery Partner <br /> ETA: {eta ? `${eta} min` : "Calculating..."}</Popup>
+          </Marker>
+        )}
+
+        {/* Customer marker */}
         {customerLat && customerLng && (
-          <Marker position={[customerLat, customerLng]}>
+          <Marker position={[customerLat, customerLng]} icon={customerIcon}>
             <Popup>🏠 Customer Location</Popup>
           </Marker>
         )}

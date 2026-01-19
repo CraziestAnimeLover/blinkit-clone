@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { socket } from "../../../socket.js"; // make sure you import the same socket instance
 
 const icon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149059.png",
@@ -32,7 +32,7 @@ const DeliveryDashboard = () => {
     fetchOrders();
   }, []);
 
-  // Track GPS for active order
+  // Track GPS for active order & emit via socket
   useEffect(() => {
     if (!activeOrderId) return;
 
@@ -41,6 +41,7 @@ const DeliveryDashboard = () => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setDeliveryPos(loc);
 
+        // Update backend
         try {
           await axios.put(
             `${BACKEND_URL}/api/orders/${activeOrderId}/location`,
@@ -48,8 +49,11 @@ const DeliveryDashboard = () => {
             { headers: { Authorization: `Bearer ${token}` } }
           );
         } catch (err) {
-          console.error("Location update failed", err);
+          console.error("Backend location update failed", err);
         }
+
+        // Emit live location via socket
+        socket.emit("locationUpdate", { orderId: activeOrderId, ...loc });
       },
       (err) => console.error("GPS error", err),
       { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }

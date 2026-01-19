@@ -8,6 +8,7 @@ export const getAdminStats = async (req, res) => {
     const menus = await Product.countDocuments();
     const orders = await Order.countDocuments();
 
+    // Aggregate total income from PAID orders that are not cancelled
     const incomeAgg = await Order.aggregate([
       {
         $match: {
@@ -18,22 +19,24 @@ export const getAdminStats = async (req, res) => {
       {
         $group: {
           _id: null,
-          income: { $sum: "$totalAmount" },
+          income: { $sum: "$totalAmount" }, // totalAmount is Number in schema
         },
       },
     ]);
 
-    const income = incomeAgg[0]?.income || 0;
+    const income = incomeAgg[0]?.income || 0; // fallback to 0 if no orders
 
     res.json({
       success: true,
       stats: { menus, orders, customers, income },
     });
   } catch (err) {
-    console.error(err);
+    console.error("Stats error:", err);
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+
 
 /* ✅ THIS EXPORT WAS MISSING OR WRONG */
 export const getAllOrders = async (req, res) => {

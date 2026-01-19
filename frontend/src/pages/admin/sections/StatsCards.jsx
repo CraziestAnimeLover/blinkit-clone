@@ -6,34 +6,39 @@ export default function StatsCards() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-  if (!token) return;
+    if (!token) return;
 
-  const fetchStats = async () => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/admin/stats`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setStats(res.data.stats);
-    } catch (err) {
-      console.error("Stats error:", err.response?.data || err.message);
-    }
-  };
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/admin/stats`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-  fetchStats();
-}, [token]);
+        console.log("Stats response:", res.data.stats); // debug
+
+        setStats(res.data.stats);
+      } catch (err) {
+        console.error("Stats fetch error:", err.response?.data || err.message);
+      }
+    };
+
+    fetchStats();
+  }, [token]);
 
   if (!stats) {
     return <div className="text-gray-500">Loading stats...</div>;
   }
 
+  // ✅ Cards data with formatted income
   const cards = [
-    { title: "Menus", value: stats.menus },
-    { title: "Orders", value: stats.orders },
-    { title: "Customers", value: stats.customers },
-    { title: "Income", value: `₹${stats.income}` },
+    { title: "Menus", value: stats.menus ?? 0 },
+    { title: "Orders", value: stats.orders ?? 0 },
+    { title: "Customers", value: stats.customers ?? 0 },
+    {
+      title: "Income",
+      value: `₹${Number(stats.income ?? 0).toLocaleString()}`, // adds commas
+    },
   ];
 
   return (
