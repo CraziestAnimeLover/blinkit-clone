@@ -21,42 +21,54 @@ const MapUpdater = ({ lat, lng }) => {
   return null;
 };
 
-// ================= SMOOTH MOVING MARKER =================
-const SmoothMarker = ({ position }) => {
+// ================= MARKER ALONG ROUTE =================
+const RouteFollowerMarker = ({ route }) => {
   const markerRef = useRef();
-  const lastPosRef = useRef(position);
-  const animationRef = useRef();
+  const indexRef = useRef(0);
 
   useEffect(() => {
-    if (!position || !markerRef.current) return;
+    if (!route || route.length === 0 || !markerRef.current) return;
 
-    const start = lastPosRef.current || position;
-    const end = position;
-    const duration = 1000; // 1 second animation
-    const startTime = performance.now();
+    let animationFrame;
+    const speed = 0.0005; // movement speed (adjust to your liking)
 
-    const animate = (time) => {
-      const elapsed = time - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      const lat = start.lat + (end.lat - start.lat) * t;
-      const lng = start.lng + (end.lng - start.lng) * t;
+    const moveAlongRoute = () => {
+      if (indexRef.current >= route.length - 1) return;
 
-      markerRef.current.setLatLng([lat, lng]);
+      const [lat1, lng1] = route[indexRef.current];
+      const [lat2, lng2] = route[indexRef.current + 1];
 
-      if (t < 1) animationRef.current = requestAnimationFrame(animate);
-      else lastPosRef.current = end; // save last position
+      const latDiff = lat2 - lat1;
+      const lngDiff = lng2 - lng1;
+
+      let progress = 0;
+
+      const step = () => {
+        progress += speed;
+        if (progress >= 1) {
+          indexRef.current += 1;
+          progress = 0;
+        }
+
+        const lat = lat1 + latDiff * progress;
+        const lng = lng1 + lngDiff * progress;
+
+        markerRef.current.setLatLng([lat, lng]);
+        animationFrame = requestAnimationFrame(step);
+      };
+
+      step();
     };
 
-    cancelAnimationFrame(animationRef.current);
-    animationRef.current = requestAnimationFrame(animate);
+    moveAlongRoute();
 
-    return () => cancelAnimationFrame(animationRef.current);
-  }, [position]);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [route]);
 
-  if (!position) return null;
+  if (!route || route.length === 0) return null;
 
   return (
-    <Marker ref={markerRef} position={[position.lat, position.lng]} icon={icon}>
+    <Marker ref={markerRef} position={route[0]} icon={icon}>
       <Popup>🚴 Delivery Partner</Popup>
     </Marker>
   );
@@ -109,19 +121,21 @@ const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
     fetchRoute();
   }, [location, customerLat, customerLng]);
 
-  const markerPosition = location || fallback;
-
   return (
     <div>
       <MapContainer
-        center={[markerPosition.lat, markerPosition.lng]}
+        center={[fallback.lat, fallback.lng]}
         zoom={15}
         style={{ height: "400px", width: "100%" }}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-        <MapUpdater lat={markerPosition.lat} lng={markerPosition.lng} />
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <MapUpdater lat={location?.lat || fallback.lat} lng={location?.lng || fallback.lng} />
 
-        <SmoothMarker position={markerPosition} />
+        {/* Route Polyline */}
+        {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
+
+        {/* Marker following the route */}
+        {route.length > 0 && <RouteFollowerMarker route={route} />}
 
         {/* Customer Marker */}
         {customerLat && customerLng && (
@@ -129,9 +143,6 @@ const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
             <Popup>🏠 Customer Location</Popup>
           </Marker>
         )}
-
-        {/* Route Polyline */}
-        {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
       </MapContainer>
 
       {eta && <p className="text-center mt-2 font-semibold text-green-600">⏱ ETA: {eta} min</p>}
