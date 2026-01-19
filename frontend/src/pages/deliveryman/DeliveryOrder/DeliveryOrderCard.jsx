@@ -1,3 +1,4 @@
+// DeliveryOrderCard.jsx
 import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import LiveMap from "./LiveMap";
@@ -10,12 +11,12 @@ const DeliveryOrderCard = ({ order }) => {
   useEffect(() => {
     socket.emit("joinOrder", order._id);
 
-    socket.on("liveLocation", (location) => {
-      setDeliveryLocation(location);
-    });
+    const handleLocation = (location) => setDeliveryLocation(location);
+    socket.on("liveLocation", handleLocation);
 
     return () => {
-      socket.off("liveLocation");
+      socket.off("liveLocation", handleLocation);
+      socket.emit("leaveOrder", order._id);
     };
   }, [order._id]);
 
@@ -25,9 +26,12 @@ const DeliveryOrderCard = ({ order }) => {
       <p><b>Status:</b> {order.orderStatus}</p>
 
       <LiveMap
-        lat={deliveryLocation?.lat}
-        lng={deliveryLocation?.lng}
+        customerLat={order.customerLat}
+        customerLng={order.customerLng}
+        deliveryLat={deliveryLocation?.lat}
+        deliveryLng={deliveryLocation?.lng}
         address={order.address}
+        orderId={order._id}
       />
     </div>
   );

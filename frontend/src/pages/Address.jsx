@@ -19,14 +19,14 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-/* ================= REVERSE GEOCODE VIA BACKEND ================= */
+/* ================= REVERSE GEOCODE ================= */
 const reverseGeocode = async (lat, lng) => {
   try {
     const res = await axios.get(
       `${import.meta.env.VITE_BACKEND_URL}/api/addresses/reverse`,
       { params: { lat, lon: lng } }
     );
-    return res.data;
+    return res.data.address || {};
   } catch (err) {
     console.error("Reverse geocode error:", err);
     return {};
@@ -40,17 +40,18 @@ const MapClickHandler = ({ setNewAddress }) => {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
 
-      const data = await reverseGeocode(lat, lng);
-      const address = data?.address || {};
+      const addr = await reverseGeocode(lat, lng);
 
       setNewAddress((prev) => ({
         ...prev,
         lat,
         lng,
-        line1: address.road || "",
-        city: address.city || address.town || address.village || "",
-        state: address.state || "",
-        zip: address.postcode || "",
+        line1:
+          (addr.house_number ? `${addr.house_number}, ` : "") +
+          (addr.road || addr.pedestrian || addr.neighbourhood || ""),
+        city: addr.city || addr.town || addr.village || addr.county || "",
+        state: addr.state || addr.region || "",
+        zip: addr.postcode || "",
       }));
     },
   });
@@ -78,9 +79,9 @@ const Address = () => {
   const SMALL_CART_CHARGE = 20;
   const grandTotal =
     parseFloat(total || 0) +
-    parseFloat(DELIVERY_CHARGE) +
-    parseFloat(HANDLING_CHARGE) +
-    parseFloat(SMALL_CART_CHARGE);
+    DELIVERY_CHARGE +
+    HANDLING_CHARGE +
+    SMALL_CART_CHARGE;
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState("");
@@ -131,19 +132,18 @@ const Address = () => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
 
-        const data = await reverseGeocode(lat, lng);
-        const address = data?.address || {};
+        const addr = await reverseGeocode(lat, lng);
 
         setNewAddress((prev) => ({
           ...prev,
           lat,
           lng,
-          line1: address.house_number
-            ? `${address.house_number}, ${address.road}`
-            : address.road || "",
-          city: address.city || address.town || address.village || "",
-          state: address.state || "",
-          zip: address.postcode || "",
+          line1:
+            (addr.house_number ? `${addr.house_number}, ` : "") +
+            (addr.road || addr.pedestrian || addr.neighbourhood || ""),
+          city: addr.city || addr.town || addr.village || addr.county || "",
+          state: addr.state || addr.region || "",
+          zip: addr.postcode || "",
         }));
       },
       () => alert("Location permission denied")
@@ -165,7 +165,14 @@ const Address = () => {
       addressToUse = res.data.address;
     }
 
-    const formattedAddress = `${addressToUse.line1}, ${addressToUse.city}, ${addressToUse.state} - ${addressToUse.zip}`;
+    const formattedAddress = [
+      addressToUse.line1,
+      addressToUse.city,
+      addressToUse.state,
+      addressToUse.zip,
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     const payload = {
       userId: user._id,
@@ -186,7 +193,6 @@ const Address = () => {
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       navigate(`/payment/${res.data.order._id}`);
     } catch (err) {
       console.error("Order error:", err.response?.data || err.message);
@@ -222,7 +228,14 @@ const Address = () => {
           <div>
             <p className="font-semibold">{addr.name}</p>
             <p className="text-sm text-gray-600">
-              {addr.line1}, {addr.city}, {addr.state}
+              {[
+                addr.line1,
+                addr.city,
+                addr.state,
+                addr.zip,
+              ]
+                .filter(Boolean)
+                .join(", ")}
             </p>
           </div>
         </label>
@@ -253,7 +266,6 @@ const Address = () => {
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <MapClickHandler setNewAddress={setNewAddress} />
             <RecenterMap lat={newAddress.lat} lng={newAddress.lng} />
-
             {newAddress.lat && newAddress.lng && (
               <SmoothMarker
                 position={{ lat: newAddress.lat, lng: newAddress.lng }}
@@ -265,6 +277,7 @@ const Address = () => {
         <input
           placeholder="Flat / House No"
           className="input"
+          value={newAddress.line1}
           onChange={(e) =>
             setNewAddress({ ...newAddress, line1: e.target.value })
           }
@@ -272,6 +285,7 @@ const Address = () => {
         <input
           placeholder="City"
           className="input"
+          value={newAddress.city}
           onChange={(e) =>
             setNewAddress({ ...newAddress, city: e.target.value })
           }
@@ -279,6 +293,7 @@ const Address = () => {
         <input
           placeholder="State"
           className="input"
+          value={newAddress.state}
           onChange={(e) =>
             setNewAddress({ ...newAddress, state: e.target.value })
           }
@@ -286,6 +301,7 @@ const Address = () => {
         <input
           placeholder="ZIP"
           className="input"
+          value={newAddress.zip}
           onChange={(e) =>
             setNewAddress({ ...newAddress, zip: e.target.value })
           }
@@ -308,6 +324,7 @@ const Address = () => {
         <textarea
           placeholder="Delivery instructions"
           className="input"
+          value={newAddress.instructions}
           onChange={(e) =>
             setNewAddress({ ...newAddress, instructions: e.target.value })
           }
@@ -316,6 +333,7 @@ const Address = () => {
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            checked={newAddress.isDefault}
             onChange={(e) =>
               setNewAddress({ ...newAddress, isDefault: e.target.checked })
             }

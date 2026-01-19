@@ -6,17 +6,18 @@ import "leaflet/dist/leaflet.css";
 
 const icon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149059.png",
-  iconSize: [30, 30],
+  iconSize: [35, 35],
 });
 
 const DeliveryDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [activeOrderId, setActiveOrderId] = useState(null);
+  const [deliveryPos, setDeliveryPos] = useState(null);
 
   const token = localStorage.getItem("token");
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // 1️⃣ Fetch assigned orders
+  // Fetch assigned orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -28,48 +29,38 @@ const DeliveryDashboard = () => {
         console.error(err);
       }
     };
-
     fetchOrders();
   }, []);
 
-  // 2️⃣ Start LIVE GPS tracking for active order
+  // Track GPS for active order
   useEffect(() => {
     if (!activeOrderId) return;
 
     const watchId = navigator.geolocation.watchPosition(
       async (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setDeliveryPos(loc);
+
         try {
           await axios.put(
             `${BACKEND_URL}/api/orders/${activeOrderId}/location`,
-            {
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
+            loc,
+            { headers: { Authorization: `Bearer ${token}` } }
           );
         } catch (err) {
           console.error("Location update failed", err);
         }
       },
       (err) => console.error("GPS error", err),
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 5000,
-      }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
     );
 
-    // stop tracking when order changes
     return () => navigator.geolocation.clearWatch(watchId);
   }, [activeOrderId]);
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-green-600">
-        🚴 Delivery Dashboard
-      </h1>
+      <h1 className="text-3xl font-bold text-green-600">🚴 Delivery Dashboard</h1>
 
       {orders.length === 0 && <p>No assigned orders yet.</p>}
 
@@ -78,39 +69,24 @@ const DeliveryDashboard = () => {
           <h2 className="font-bold">Order #{order._id}</h2>
           <p>📍 Address: {order.address}</p>
 
-          {/* Start / Stop tracking */}
           <button
             onClick={() => setActiveOrderId(order._id)}
             className={`px-4 py-2 rounded text-white ${
-              activeOrderId === order._id
-                ? "bg-gray-400"
-                : "bg-green-600"
+              activeOrderId === order._id ? "bg-gray-400" : "bg-green-600"
             }`}
             disabled={activeOrderId === order._id}
           >
-            {activeOrderId === order._id
-              ? "Tracking Active"
-              : "Start Delivery"}
+            {activeOrderId === order._id ? "Tracking Active" : "Start Delivery"}
           </button>
 
-          {/* Local map preview */}
-          {order.deliveryLocation && (
+          {deliveryPos && activeOrderId === order._id && (
             <MapContainer
-              center={[
-                order.deliveryLocation.lat,
-                order.deliveryLocation.lng,
-              ]}
+              center={[deliveryPos.lat, deliveryPos.lng]}
               zoom={15}
-              className="h-[250px] w-full"
+              className="h-[250px] w-full mt-3 rounded border"
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker
-                position={[
-                  order.deliveryLocation.lat,
-                  order.deliveryLocation.lng,
-                ]}
-                icon={icon}
-              >
+              <Marker position={[deliveryPos.lat, deliveryPos.lng]} icon={icon}>
                 <Popup>Your current position</Popup>
               </Marker>
             </MapContainer>
