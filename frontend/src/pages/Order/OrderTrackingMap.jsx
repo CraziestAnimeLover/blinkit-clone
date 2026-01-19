@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { socket } from "../../socket.js"; // import your shared socket
+import { socket } from "../../socket.js"; // shared socket
 
 // ================= ICON SETUP =================
 const icon = new L.Icon({
@@ -13,58 +13,43 @@ const icon = new L.Icon({
 // ================= MAP UPDATER =================
 const MapUpdater = ({ lat, lng }) => {
   const map = useMap();
-
   useEffect(() => {
     if (lat != null && lng != null) {
       map.flyTo([lat, lng], map.getZoom(), { duration: 1 });
     }
   }, [lat, lng]);
-
   return null;
 };
 
-// ================= SMOOTH & BLINKING MARKER =================
+// ================= SMOOTH MARKER =================
 const SmoothMarker = ({ position }) => {
   const markerRef = useRef();
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    if (!position || position.lat == null || position.lng == null) return;
-
-    const interval = setInterval(() => setVisible((v) => !v), 500);
-    return () => clearInterval(interval);
-  }, [position]);
-
   useEffect(() => {
     if (markerRef.current && position) {
       markerRef.current.setLatLng([position.lat, position.lng]);
-      setVisible(true); // ensure marker visible after move
     }
   }, [position]);
 
-  if (!position || position.lat == null || position.lng == null || !visible) return null;
+  if (!position || position.lat == null || position.lng == null) return null;
 
   return (
     <Marker ref={markerRef} position={[position.lat, position.lng]} icon={icon}>
-      <Popup>
-        {position ? "🚴 Delivery Partner is here" : "Waiting for delivery partner..."}
-      </Popup>
+      <Popup>🚴 Delivery Partner is here</Popup>
     </Marker>
   );
 };
 
 // ================= MAIN COMPONENT =================
-const OrderTrackingMap = ({ orderId }) => {
+const OrderTrackingMap = ({ orderId, customerLat, customerLng }) => {
   const [location, setLocation] = useState(null);
-  const [connected, setConnected] = useState(socket.connected);
+  const [route, setRoute] = useState([]);
+  const [eta, setEta] = useState(null);
 
-  // Fallback coordinates while waiting
-  const fallback = { lat: 37.7749, lng: -122.4194 };
+  // Fallback coordinates
+  const fallback = { lat: customerLat || 37.7749, lng: customerLng || -122.4194 };
 
   useEffect(() => {
     if (!orderId) return;
-
-    console.log("📦 Tracking order:", orderId);
 
     // Join the order room
     socket.emit("joinOrder", orderId);
@@ -72,48 +57,65 @@ const OrderTrackingMap = ({ orderId }) => {
     // Listen for live location updates
     const handleLocationUpdate = (data) => {
       if (data && data.lat != null && data.lng != null) {
-        console.log("📡 Live location:", data);
         setLocation(data);
       }
     };
 
-    const handleConnect = () => {
-      console.log("✅ Connected to server");
-      setConnected(true);
-      socket.emit("joinOrder", orderId); // rejoin room on reconnect
-    };
-
-    const handleDisconnect = () => {
-      console.log("⚠️ Disconnected from server");
-      setConnected(false);
-    };
-
     socket.on("locationUpdate", handleLocationUpdate);
-    socket.on("connect", handleConnect);
-    socket.on("disconnect", handleDisconnect);
 
     return () => {
       socket.off("locationUpdate", handleLocationUpdate);
-      socket.off("connect", handleConnect);
-      socket.off("disconnect", handleDisconnect);
+      socket.emit("leaveOrder", orderId);
     };
   }, [orderId]);
 
-  if (!connected) return <p className="text-center p-4">Reconnecting to server...</p>;
+  // Fetch route whenever location updates
+  useEffect(() => {
+    if (!location || !customerLat || !customerLng) return;
 
-  // Use location if available, otherwise fallback
+    const fetchRoute = async () => {
+      try {
+        const res = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${location.lng},${location.lat};${customerLng},${customerLat}?overview=full&geometries=geojson`
+        ).then((r) => r.json());
+
+        const coords = res.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        setRoute(coords);
+        setEta(Math.ceil(res.routes[0].duration / 60));
+      } catch (err) {
+        console.error("Error fetching route:", err);
+      }
+    };
+
+    fetchRoute();
+  }, [location, customerLat, customerLng]);
+
   const markerPosition = location || fallback;
 
   return (
-    <MapContainer
-      center={[markerPosition.lat, markerPosition.lng]}
-      zoom={15}
-      style={{ height: "400px", width: "100%" }}
-    >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <MapUpdater lat={markerPosition.lat} lng={markerPosition.lng} />
-      <SmoothMarker position={markerPosition} />
-    </MapContainer>
+    <div>
+      <MapContainer
+        center={[markerPosition.lat, markerPosition.lng]}
+        zoom={15}
+        style={{ height: "400px", width: "100%" }}
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <MapUpdater lat={markerPosition.lat} lng={markerPosition.lng} />
+        <SmoothMarker position={markerPosition} />
+
+        {/* Customer marker */}
+        {customerLat && customerLng && (
+          <Marker position={[customerLat, customerLng]}>
+            <Popup>🏠 Customer Location</Popup>
+          </Marker>
+        )}
+
+        {/* Route */}
+        {route.length > 0 && <Polyline positions={route} color="blue" weight={5} />}
+      </MapContainer>
+
+      {eta && <p className="text-center mt-2 font-semibold text-green-600">⏱ ETA: {eta} min</p>}
+    </div>
   );
 };
 
