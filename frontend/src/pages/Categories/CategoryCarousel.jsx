@@ -79,19 +79,20 @@ export default function CarouselWithImage({ categories, onCategoryClick }) {
       <div className="relative h-14 sm:h-20 mt-4 bg-blue-200 rounded-lg">
         {/* IMAGE DRAG HANDLE */}
         <img
-          ref={handleRef}
-          src="/binkitscooter.jpg"
-          alt="Drag to scroll"
-          draggable={false}
-          style={{ left: 0 }}
-          className="
-            absolute top-1/2 -translate-y-1/2
-            w-10 h-10 sm:w-16 sm:h-16
-            cursor-grab active:cursor-grabbing
-            rounded-full bg-white shadow-md
-            touch-none select-none
-          "
-        />
+  ref={handleRef}
+  src="/binkitscooter.jpg"
+  alt="Drag to scroll"
+  draggable={false}
+  className="
+    absolute top-1/2 -translate-y-1/2
+    w-10 h-10 sm:w-16 sm:h-16
+    rounded-full
+    cursor-grab active:cursor-grabbing
+    select-none touch-none
+    shadow-md
+  "
+/>
+
       </div>
     </div>
   );
