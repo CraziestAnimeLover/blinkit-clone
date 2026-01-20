@@ -1,6 +1,5 @@
 import { useRef, useEffect } from "react";
 import CategoryCard from "./CategoryCard";
-import { CgArrowRightR } from "react-icons/cg";
 
 export default function CarouselWithImage({ categories, onCategoryClick }) {
   const carouselRef = useRef(null);
@@ -15,7 +14,7 @@ export default function CarouselWithImage({ categories, onCategoryClick }) {
     if (!handle) return;
 
     const onPointerDown = (e) => {
-      e.preventDefault(); // 🔥 VERY IMPORTANT
+      e.preventDefault(); // 🔥 critical
       dragging.current = true;
       startX.current = e.clientX - left.current;
       handle.setPointerCapture(e.pointerId);
@@ -33,7 +32,7 @@ export default function CarouselWithImage({ categories, onCategoryClick }) {
       left.current = newLeft;
       handle.style.left = `${newLeft}px`;
 
-      // Sync carousel scroll
+      // sync carousel scroll
       const maxScroll =
         carouselRef.current.scrollWidth -
         carouselRef.current.offsetWidth;
@@ -77,22 +76,22 @@ export default function CarouselWithImage({ categories, onCategoryClick }) {
       </div>
 
       {/* CUSTOM SCROLLBAR */}
-      <div className="relative h-14 sm:h-20 mt-4 bg-blue-200 rounded">
-        {/* DRAG HANDLE */}
-        <div
+      <div className="relative h-14 sm:h-20 mt-4 bg-blue-200 rounded-lg">
+        {/* IMAGE DRAG HANDLE */}
+        <img
           ref={handleRef}
+          src="/binkitscooter.jpg"
+          alt="Drag to scroll"
+          draggable={false}
           style={{ left: 0 }}
           className="
             absolute top-1/2 -translate-y-1/2
             w-10 h-10 sm:w-16 sm:h-16
             cursor-grab active:cursor-grabbing
-            rounded bg-white shadow-md
-            flex items-center justify-center
+            rounded-full bg-white shadow-md
             touch-none select-none
           "
-        >
-          <CgArrowRightR className="w-6 h-6 sm:w-8 sm:h-8" />
-        </div>
+        />
       </div>
     </div>
   );
