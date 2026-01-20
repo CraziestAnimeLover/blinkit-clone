@@ -1,79 +1,98 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import CategoryCard from "./CategoryCard";
-
+import { CgArrowRightR } from "react-icons/cg";
 
 export default function CarouselWithImage({ categories, onCategoryClick }) {
   const carouselRef = useRef(null);
-  const cubeRef = useRef(null);
+  const handleRef = useRef(null);
 
-  const [dragging, setDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [cubeLeft, setCubeLeft] = useState(0);
-
-  // Scroll carousel according to cube position
-  const updateCarouselScroll = (newLeft) => {
-    if (!carouselRef.current || !cubeRef.current) return;
-
-    const maxLeft = cubeRef.current.parentElement.offsetWidth - cubeRef.current.offsetWidth;
-    const ratio = newLeft / maxLeft;
-    const maxScroll = carouselRef.current.scrollWidth - carouselRef.current.offsetWidth;
-
-    carouselRef.current.scrollTo({
-      left: ratio * maxScroll,
-      behavior: "auto",
-    });
-  };
-
-  const handleMouseDown = (e) => {
-    setDragging(true);
-    setStartX(e.clientX - cubeLeft);
-  };
-
-  const handleMouseMove = (e) => {
-    if (!dragging) return;
-    const maxLeft = cubeRef.current.parentElement.offsetWidth - cubeRef.current.offsetWidth;
-    let newLeft = e.clientX - startX;
-
-    if (newLeft < 0) newLeft = 0;
-    if (newLeft > maxLeft) newLeft = maxLeft;
-
-    setCubeLeft(newLeft);
-    updateCarouselScroll(newLeft);
-  };
-
-  const handleMouseUp = () => setDragging(false);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const left = useRef(0);
 
   useEffect(() => {
-    window.addEventListener("mouseup", handleMouseUp);
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => {
-      window.removeEventListener("mouseup", handleMouseUp);
-      window.removeEventListener("mousemove", handleMouseMove);
+    const handle = handleRef.current;
+    if (!handle) return;
+
+    const onPointerDown = (e) => {
+      e.preventDefault(); // 🔥 VERY IMPORTANT
+      dragging.current = true;
+      startX.current = e.clientX - left.current;
+      handle.setPointerCapture(e.pointerId);
     };
-  }, [dragging, startX]);
+
+    const onPointerMove = (e) => {
+      if (!dragging.current) return;
+
+      const track = handle.parentElement;
+      const maxLeft = track.offsetWidth - handle.offsetWidth;
+
+      let newLeft = e.clientX - startX.current;
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+
+      left.current = newLeft;
+      handle.style.left = `${newLeft}px`;
+
+      // Sync carousel scroll
+      const maxScroll =
+        carouselRef.current.scrollWidth -
+        carouselRef.current.offsetWidth;
+
+      carouselRef.current.scrollLeft =
+        (newLeft / maxLeft) * maxScroll;
+    };
+
+    const onPointerUp = (e) => {
+      dragging.current = false;
+      handle.releasePointerCapture(e.pointerId);
+    };
+
+    handle.addEventListener("pointerdown", onPointerDown);
+    handle.addEventListener("pointermove", onPointerMove);
+    handle.addEventListener("pointerup", onPointerUp);
+    handle.addEventListener("pointercancel", onPointerUp);
+
+    return () => {
+      handle.removeEventListener("pointerdown", onPointerDown);
+      handle.removeEventListener("pointermove", onPointerMove);
+      handle.removeEventListener("pointerup", onPointerUp);
+      handle.removeEventListener("pointercancel", onPointerUp);
+    };
+  }, []);
 
   return (
-    <div className="relative">
-      {/* Carousel */}
+    <div className="relative w-full">
+      {/* CATEGORY CAROUSEL */}
       <div
         ref={carouselRef}
-        className="flex space-x-4 overflow-x-hidden py-4"
+        className="flex gap-3 sm:gap-4 overflow-x-hidden py-4"
       >
         {categories.map((cat) => (
-          <CategoryCard key={cat.title} category={cat} onClick={onCategoryClick} />
+          <CategoryCard
+            key={cat.id}
+            category={cat}
+            onClick={onCategoryClick}
+          />
         ))}
       </div>
 
-      {/* Image Scrollbar */}
-      <div className="relative h-20 mt-4 bg-blue-200 rounded-lg ">
-        {/* <img
-          ref={cubeRef}
-          src="/binkitscooter.jpg"
-          alt="draggable scooter"
-          onMouseDown={handleMouseDown}
-          style={{ left: cubeLeft }}
-          className="absolute top-1/2 -translate-y-1/2 w-20 h-20 cursor-grab select-none border rounded"
-        /> */}
+      {/* CUSTOM SCROLLBAR */}
+      <div className="relative h-14 sm:h-20 mt-4 bg-blue-200 rounded">
+        {/* DRAG HANDLE */}
+        <div
+          ref={handleRef}
+          style={{ left: 0 }}
+          className="
+            absolute top-1/2 -translate-y-1/2
+            w-10 h-10 sm:w-16 sm:h-16
+            cursor-grab active:cursor-grabbing
+            rounded bg-white shadow-md
+            flex items-center justify-center
+            touch-none select-none
+          "
+        >
+          <CgArrowRightR className="w-6 h-6 sm:w-8 sm:h-8" />
+        </div>
       </div>
     </div>
   );
