@@ -66,14 +66,14 @@ export default function CarouselWithImage({ categories, onCategoryClick }) {
 
       {/* Image Scrollbar */}
       <div className="relative h-20 mt-4 bg-blue-200 rounded-lg ">
-        <img
+        {/* <img
           ref={cubeRef}
           src="/binkitscooter.jpg"
           alt="draggable scooter"
           onMouseDown={handleMouseDown}
           style={{ left: cubeLeft }}
           className="absolute top-1/2 -translate-y-1/2 w-20 h-20 cursor-grab select-none border rounded"
-        />
+        /> */}
       </div>
     </div>
   );
